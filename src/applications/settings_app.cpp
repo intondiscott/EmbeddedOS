@@ -1,15 +1,14 @@
-#include <SmartWatch_Structs.h>
-//#include <RadioLib.h>
+#include <Embedded_Structs.h>
+// #include <RadioLib.h>
 #include <close-windows.h>
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
-//#include <utilities.h>
+// #include <utilities.h>
 #include <WiFi.h>
-
+#include <Arduino.h>
 #define TFT_WIDTH 410
 #define TFT_HEIGHT 512
-
 
 typedef enum
 {
@@ -18,7 +17,7 @@ typedef enum
 } lv_menu_builder_variant_t;
 
 extern Settings *setting_values;
-//extern SX1262 radio; // SX1262 radio object
+// extern SX1262 radio; // SX1262 radio object
 
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
@@ -27,46 +26,42 @@ const int freq = 5000;
 const int ledChannel = 0;
 const int resolution = 8;
 
-
+#ifdef WAVESHARE_OLED_SMARTWATCH
 static void setBrightness(uint8_t value)
-{   
+{
 
-   const uint8_t co5300_init_operations[] = {
-    BEGIN_WRITE,
-    WRITE_COMMAND_8, CO5300_C_SLPOUT, // Sleep Out
-    END_WRITE,
+    const uint8_t co5300_init_operations[] = {
+        BEGIN_WRITE,
+        WRITE_COMMAND_8, CO5300_C_SLPOUT, // Sleep Out
+        END_WRITE,
 
-    DELAY, CO5300_SLPOUT_DELAY,
+        DELAY, CO5300_SLPOUT_DELAY,
 
-    BEGIN_WRITE,
-    // WRITE_C8_D8, CO5300_WC_TEARON, 0x00,
-    WRITE_C8_D8, 0xFE, 0x00,
-    WRITE_C8_D8, CO5300_W_SPIMODECTL, 0x80,
-    // WRITE_C8_D8, CO5300_W_MADCTL, CO5300_MADCTL_COLOR_ORDER, // RGB/BGR
-    WRITE_C8_D8, CO5300_W_PIXFMT, 0x55, // Interface Pixel Format 16bit/pixel
-    // WRITE_C8_D8, CO5300_W_PIXFMT, 0x66, // Interface Pixel Format 18bit/pixel
-    // WRITE_C8_D8, CO5300_W_PIXFMT, 0x77, // Interface Pixel Format 24bit/pixel
-    WRITE_C8_D8, CO5300_W_WCTRLD1, 0x20,
-    WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALHBM, 0xFF,
-    WRITE_COMMAND_8, CO5300_C_DISPON, // Display ON
-    WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALNOR, value, // Brightness adjustment
+        BEGIN_WRITE,
+        // WRITE_C8_D8, CO5300_WC_TEARON, 0x00,
+        WRITE_C8_D8, 0xFE, 0x00,
+        WRITE_C8_D8, CO5300_W_SPIMODECTL, 0x80,
+        // WRITE_C8_D8, CO5300_W_MADCTL, CO5300_MADCTL_COLOR_ORDER, // RGB/BGR
+        WRITE_C8_D8, CO5300_W_PIXFMT, 0x55, // Interface Pixel Format 16bit/pixel
+        // WRITE_C8_D8, CO5300_W_PIXFMT, 0x66, // Interface Pixel Format 18bit/pixel
+        // WRITE_C8_D8, CO5300_W_PIXFMT, 0x77, // Interface Pixel Format 24bit/pixel
+        WRITE_C8_D8, CO5300_W_WCTRLD1, 0x20,
+        WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALHBM, 0xFF,
+        WRITE_COMMAND_8, CO5300_C_DISPON,                // Display ON
+        WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALNOR, value, // Brightness adjustment
 
-    // High contrast mode (Sunlight Readability Enhancement)
-    WRITE_C8_D8, CO5300_W_WCE, 0x00, // Off
-    // WRITE_C8_D8, CO5300_W_WCE, 0x05, // On Low
-    // WRITE_C8_D8, CO5300_W_WCE, 0x06, // On Medium
-    // WRITE_C8_D8, CO5300_W_WCE, 0x07, // On High
+        // High contrast mode (Sunlight Readability Enhancement)
+        WRITE_C8_D8, CO5300_W_WCE, 0x00, // Off
+        // WRITE_C8_D8, CO5300_W_WCE, 0x05, // On Low
+        // WRITE_C8_D8, CO5300_W_WCE, 0x06, // On Medium
+        // WRITE_C8_D8, CO5300_W_WCE, 0x07, // On High
 
-    END_WRITE,
+        END_WRITE,
 
-    DELAY, 10};
-  SmartWatchUI_t.bus->batchOperation(co5300_init_operations, sizeof(co5300_init_operations));
-    
-        
-        
-    
+        DELAY, 10};
+    EmbeddedUI_t.bus->batchOperation(co5300_init_operations, sizeof(co5300_init_operations));
 }
-
+#endif
 static void switch_handler(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
@@ -77,7 +72,7 @@ static void switch_handler(lv_event_t *e)
         if (lv_obj_has_state(obj, LV_STATE_CHECKED))
         {
             lv_menu_set_page(menu, NULL);
-            lv_menu_set_sidebar_page(menu, SmartWatchUI_t.root_page);
+            lv_menu_set_sidebar_page(menu, EmbeddedUI_t.root_page);
             lv_obj_send_event(lv_obj_get_child(lv_obj_get_child(lv_menu_get_cur_sidebar_page(menu), 0), 0), LV_EVENT_CLICKED,
                               NULL);
         }
@@ -85,7 +80,7 @@ static void switch_handler(lv_event_t *e)
         {
             lv_menu_set_sidebar_page(menu, NULL);
             lv_menu_clear_history(menu); /* Clear history because we will be showing the root page later */
-            lv_menu_set_page(menu, SmartWatchUI_t.root_page);
+            lv_menu_set_page(menu, EmbeddedUI_t.root_page);
         }
     }
 }
@@ -139,7 +134,7 @@ static void brightness_control_cb(lv_event_t *e)
 {
     lv_obj_t *slider = (lv_obj_t *)lv_event_get_target(e);
     setting_values->brightness = (int)lv_slider_get_value(slider);
-    setBrightness(setting_values->brightness);
+    // setBrightness(setting_values->brightness);
 }
 
 static lv_obj_t *create_slider(lv_obj_t *parent, const char *icon, const char *txt, int32_t min, int32_t max,
@@ -209,22 +204,22 @@ static void switch_control_cb(lv_event_t *e)
         {
             // Initialize the radio module
             Serial.print(F("[SX1262] Initializing ... "));
-            //int state = radio.begin();
-            // if (state == RADIOLIB_ERR_NONE)
-            // {
-            //     Serial.println(F("success!"));
-            // }
-            // else
-            // {
-            //     Serial.print(F("failed, code "));
-            //     Serial.println(state);
-            // }
+            // int state = radio.begin();
+            //  if (state == RADIOLIB_ERR_NONE)
+            //  {
+            //      Serial.println(F("success!"));
+            //  }
+            //  else
+            //  {
+            //      Serial.print(F("failed, code "));
+            //      Serial.println(state);
+            //  }
         }
         else
         {
             // Deinitialize the radio module
             Serial.println(F("[SX1262] Deinitializing ... "));
-            //radio.sleep();
+            // radio.sleep();
         }
     }
 }
@@ -242,55 +237,55 @@ static lv_obj_t *create_switch(lv_obj_t *parent, const char *icon, const char *t
 
 static void create_setting_page(lv_event_t *e)
 {
-    if (!lv_obj_is_valid(SmartWatchUI_t.setting))
+    if (!lv_obj_is_valid(EmbeddedUI_t.setting))
     {
-        SmartWatchUI_t.setting = lv_menu_create(lv_screen_active());
-        // lv_obj_t *label = lv_label_create(SmartWatchUI_t.setting);
-        SmartWatchUI_t.close_btn = lv_button_create(SmartWatchUI_t.setting);
-        lv_obj_set_style_bg_color(SmartWatchUI_t.close_btn, lv_color_hex(0xfc0303), LV_PART_MAIN);
-        lv_obj_t *label_close = lv_label_create(SmartWatchUI_t.close_btn);
+        EmbeddedUI_t.setting = lv_menu_create(lv_screen_active());
+        // lv_obj_t *label = lv_label_create(EmbeddedUI_t.setting);
+        EmbeddedUI_t.close_btn = lv_button_create(EmbeddedUI_t.setting);
+        lv_obj_set_style_bg_color(EmbeddedUI_t.close_btn, lv_color_hex(0xfc0303), LV_PART_MAIN);
+        lv_obj_t *label_close = lv_label_create(EmbeddedUI_t.close_btn);
         lv_obj_set_style_text_font(label_close, &lv_font_montserrat_28, LV_PART_MAIN);
         lv_label_set_text(label_close, LV_SYMBOL_TRASH);
         // lv_label_set_text(label, "Settings Page");
 
-        lv_color_t bg_color = lv_obj_get_style_bg_color(SmartWatchUI_t.setting, 0);
+        lv_color_t bg_color = lv_obj_get_style_bg_color(EmbeddedUI_t.setting, 0);
         if (lv_color_brightness(bg_color) > 127)
         {
-            lv_obj_set_style_bg_color(SmartWatchUI_t.setting, lv_color_darken(lv_obj_get_style_bg_color(SmartWatchUI_t.setting, 0), 10), 0);
+            lv_obj_set_style_bg_color(EmbeddedUI_t.setting, lv_color_darken(lv_obj_get_style_bg_color(EmbeddedUI_t.setting, 0), 10), 0);
         }
         else
         {
-            lv_obj_set_style_bg_color(SmartWatchUI_t.setting, lv_color_darken(lv_obj_get_style_bg_color(SmartWatchUI_t.setting, 0), 50), 0);
+            lv_obj_set_style_bg_color(EmbeddedUI_t.setting, lv_color_darken(lv_obj_get_style_bg_color(EmbeddedUI_t.setting, 0), 50), 0);
         }
-        lv_menu_set_mode_root_back_button(SmartWatchUI_t.setting, LV_MENU_ROOT_BACK_BUTTON_ENABLED);
-        lv_obj_add_event_cb(SmartWatchUI_t.setting, back_event_handler, LV_EVENT_CLICKED, SmartWatchUI_t.setting);
-        lv_obj_set_size(SmartWatchUI_t.setting, 300, 400);
-        lv_obj_center(SmartWatchUI_t.setting);
+        lv_menu_set_mode_root_back_button(EmbeddedUI_t.setting, LV_MENU_ROOT_BACK_BUTTON_ENABLED);
+        lv_obj_add_event_cb(EmbeddedUI_t.setting, back_event_handler, LV_EVENT_CLICKED, EmbeddedUI_t.setting);
+        lv_obj_set_size(EmbeddedUI_t.setting, 300, 400);
+        lv_obj_center(EmbeddedUI_t.setting);
 
         lv_obj_t *cont;
         lv_obj_t *section;
 
-        lv_obj_t *sub_display_page = lv_menu_page_create(SmartWatchUI_t.setting, NULL);
-        lv_obj_set_style_pad_hor(sub_display_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(SmartWatchUI_t.setting), 0), 0);
+        lv_obj_t *sub_display_page = lv_menu_page_create(EmbeddedUI_t.setting, NULL);
+        lv_obj_set_style_pad_hor(sub_display_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(EmbeddedUI_t.setting), 0), 0);
         lv_menu_separator_create(sub_display_page);
         section = lv_menu_section_create(sub_display_page);
         create_slider(section, LV_SYMBOL_SETTINGS, "Brightness", 10, 255, setting_values->brightness);
 
-        lv_obj_t *sub_communications_page = lv_menu_page_create(SmartWatchUI_t.setting, NULL);
-        lv_obj_set_style_pad_hor(sub_communications_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(SmartWatchUI_t.setting), 0), 0);
+        lv_obj_t *sub_communications_page = lv_menu_page_create(EmbeddedUI_t.setting, NULL);
+        lv_obj_set_style_pad_hor(sub_communications_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(EmbeddedUI_t.setting), 0), 0);
         lv_menu_separator_create(sub_communications_page);
         section = lv_menu_section_create(sub_communications_page);
         create_switch(section, LV_SYMBOL_WIFI, "WiFi", setting_values->wifi_communications);
         create_switch(section, LV_SYMBOL_BLUETOOTH, "Bluetooth", setting_values->bluetooth_communications);
         create_switch(section, LV_SYMBOL_GPS, "Radio", setting_values->radio_communications);
 
-        lv_obj_t *sub_software_info_page = lv_menu_page_create(SmartWatchUI_t.setting, NULL);
-        lv_obj_set_style_pad_hor(sub_software_info_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(SmartWatchUI_t.setting), 0), 0);
+        lv_obj_t *sub_software_info_page = lv_menu_page_create(EmbeddedUI_t.setting, NULL);
+        lv_obj_set_style_pad_hor(sub_software_info_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(EmbeddedUI_t.setting), 0), 0);
         section = lv_menu_section_create(sub_software_info_page);
         create_text(section, NULL, "Version 1.0", LV_MENU_ITEM_BUILDER_VARIANT_1);
 
-        lv_obj_t *sub_legal_info_page = lv_menu_page_create(SmartWatchUI_t.setting, NULL);
-        lv_obj_set_style_pad_hor(sub_legal_info_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(SmartWatchUI_t.setting), 0), 0);
+        lv_obj_t *sub_legal_info_page = lv_menu_page_create(EmbeddedUI_t.setting, NULL);
+        lv_obj_set_style_pad_hor(sub_legal_info_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(EmbeddedUI_t.setting), 0), 0);
         section = lv_menu_section_create(sub_legal_info_page);
         for (uint32_t i = 0; i < 15; i++)
         {
@@ -299,43 +294,43 @@ static void create_setting_page(lv_event_t *e)
                         LV_MENU_ITEM_BUILDER_VARIANT_1);
         }
 
-        lv_obj_t *sub_about_page = lv_menu_page_create(SmartWatchUI_t.setting, NULL);
-        lv_obj_set_style_pad_hor(sub_about_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(SmartWatchUI_t.setting), 0), 0);
+        lv_obj_t *sub_about_page = lv_menu_page_create(EmbeddedUI_t.setting, NULL);
+        lv_obj_set_style_pad_hor(sub_about_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(EmbeddedUI_t.setting), 0), 0);
         lv_menu_separator_create(sub_about_page);
         section = lv_menu_section_create(sub_about_page);
         cont = create_text(section, NULL, "Software information", LV_MENU_ITEM_BUILDER_VARIANT_1);
-        lv_menu_set_load_page_event(SmartWatchUI_t.setting, cont, sub_software_info_page);
+        lv_menu_set_load_page_event(EmbeddedUI_t.setting, cont, sub_software_info_page);
         cont = create_text(section, NULL, "Legal information", LV_MENU_ITEM_BUILDER_VARIANT_1);
-        lv_menu_set_load_page_event(SmartWatchUI_t.setting, cont, sub_legal_info_page);
+        lv_menu_set_load_page_event(EmbeddedUI_t.setting, cont, sub_legal_info_page);
 
-        lv_obj_t *sub_menu_mode_page = lv_menu_page_create(SmartWatchUI_t.setting, NULL);
-        lv_obj_set_style_pad_hor(sub_menu_mode_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(SmartWatchUI_t.setting), 0), 0);
+        lv_obj_t *sub_menu_mode_page = lv_menu_page_create(EmbeddedUI_t.setting, NULL);
+        lv_obj_set_style_pad_hor(sub_menu_mode_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(EmbeddedUI_t.setting), 0), 0);
         lv_menu_separator_create(sub_menu_mode_page);
         section = lv_menu_section_create(sub_menu_mode_page);
         cont = create_switch(section, LV_SYMBOL_AUDIO, "Sidebar enable", true);
-        lv_obj_add_event_cb(lv_obj_get_child(cont, 2), switch_handler, LV_EVENT_VALUE_CHANGED, SmartWatchUI_t.setting);
+        lv_obj_add_event_cb(lv_obj_get_child(cont, 2), switch_handler, LV_EVENT_VALUE_CHANGED, EmbeddedUI_t.setting);
 
         /*Create a root page*/
-        SmartWatchUI_t.root_page = lv_menu_page_create(SmartWatchUI_t.setting, "Settings");
-        lv_obj_set_style_pad_hor(SmartWatchUI_t.root_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(SmartWatchUI_t.setting), 0), 0);
-        section = lv_menu_section_create(SmartWatchUI_t.root_page);
+        EmbeddedUI_t.root_page = lv_menu_page_create(EmbeddedUI_t.setting, "Settings");
+        lv_obj_set_style_pad_hor(EmbeddedUI_t.root_page, lv_obj_get_style_pad_left(lv_menu_get_main_header(EmbeddedUI_t.setting), 0), 0);
+        section = lv_menu_section_create(EmbeddedUI_t.root_page);
 
         cont = create_text(section, LV_SYMBOL_SETTINGS, "Display", LV_MENU_ITEM_BUILDER_VARIANT_1);
-        lv_menu_set_load_page_event(SmartWatchUI_t.setting, cont, sub_display_page);
+        lv_menu_set_load_page_event(EmbeddedUI_t.setting, cont, sub_display_page);
         cont = create_text(section, LV_SYMBOL_WIFI, "Wireless", LV_MENU_ITEM_BUILDER_VARIANT_1);
-        lv_menu_set_load_page_event(SmartWatchUI_t.setting, cont, sub_communications_page);
-        create_text(SmartWatchUI_t.root_page, NULL, "Others", LV_MENU_ITEM_BUILDER_VARIANT_1);
-        section = lv_menu_section_create(SmartWatchUI_t.root_page);
+        lv_menu_set_load_page_event(EmbeddedUI_t.setting, cont, sub_communications_page);
+        create_text(EmbeddedUI_t.root_page, NULL, "Others", LV_MENU_ITEM_BUILDER_VARIANT_1);
+        section = lv_menu_section_create(EmbeddedUI_t.root_page);
         cont = create_text(section, NULL, "About", LV_MENU_ITEM_BUILDER_VARIANT_1);
-        lv_menu_set_load_page_event(SmartWatchUI_t.setting, cont, sub_about_page);
+        lv_menu_set_load_page_event(EmbeddedUI_t.setting, cont, sub_about_page);
         cont = create_text(section, LV_SYMBOL_SETTINGS, "Menu mode", LV_MENU_ITEM_BUILDER_VARIANT_1);
-        lv_menu_set_load_page_event(SmartWatchUI_t.setting, cont, sub_menu_mode_page);
+        lv_menu_set_load_page_event(EmbeddedUI_t.setting, cont, sub_menu_mode_page);
 
-        lv_menu_set_sidebar_page(SmartWatchUI_t.setting, SmartWatchUI_t.root_page);
-        lv_obj_align(SmartWatchUI_t.close_btn, LV_ALIGN_TOP_RIGHT,-20, 20);
-        lv_obj_set_size(SmartWatchUI_t.setting, TFT_WIDTH-60, TFT_HEIGHT-60);
-        lv_obj_center(SmartWatchUI_t.setting);
-       
-        lv_obj_add_event_cb(SmartWatchUI_t.close_btn, close_window_cb, LV_EVENT_CLICKED, NULL);
+        lv_menu_set_sidebar_page(EmbeddedUI_t.setting, EmbeddedUI_t.root_page);
+        lv_obj_align(EmbeddedUI_t.close_btn, LV_ALIGN_TOP_RIGHT, -20, 20);
+        lv_obj_set_size(EmbeddedUI_t.setting, TFT_WIDTH - 60, TFT_HEIGHT - 60);
+        lv_obj_center(EmbeddedUI_t.setting);
+
+        lv_obj_add_event_cb(EmbeddedUI_t.close_btn, close_window_cb, LV_EVENT_CLICKED, NULL);
     }
 }

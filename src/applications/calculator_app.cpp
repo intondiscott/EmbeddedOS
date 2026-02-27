@@ -1,4 +1,4 @@
-#include <SmartWatch_Structs.h>
+#include <Embedded_Structs.h>
 #include <close-windows.h>
 
 #define TFT_WIDTH 410
@@ -6,8 +6,6 @@
 
 static float num1, num2, result = 0.0f;
 static char operator_char;
-
-
 
 static void update_calculator_label(lv_event_t *e)
 {
@@ -72,17 +70,15 @@ static void btnm_event_handler(lv_event_t *e)
 static void create_calculator_page(lv_event_t *e)
 {
 
-    if (!lv_obj_is_valid(SmartWatchUI_t.calculator))
+    if (!lv_obj_is_valid(EmbeddedUI_t.calculator))
     {
-        SmartWatchUI_t.calculator = lv_obj_create(lv_screen_active());
-        lv_obj_set_style_bg_color(SmartWatchUI_t.calculator, lv_color_hex(0x43687a), LV_PART_MAIN);
-        lv_obj_t *ta = lv_textarea_create(SmartWatchUI_t.calculator);
-        lv_obj_t *label = lv_label_create(SmartWatchUI_t.calculator);
+        EmbeddedUI_t.calculator = lv_obj_create(lv_screen_active());
+        lv_obj_set_style_bg_color(EmbeddedUI_t.calculator, lv_color_hex(0x43687a), LV_PART_MAIN);
+        lv_obj_t *ta = lv_textarea_create(EmbeddedUI_t.calculator);
+        lv_obj_t *label = lv_label_create(EmbeddedUI_t.calculator);
         lv_group_t *keyboard_input_group = lv_group_create();
         lv_indev_t *indev = lv_indev_create();
         lv_indev_set_group(indev, keyboard_input_group);
-
-        
 
         lv_group_add_obj(keyboard_input_group, ta);
         lv_textarea_set_one_line(ta, true);
@@ -105,7 +101,7 @@ static void create_calculator_page(lv_event_t *e)
                 "1", "2", "3", "+", "\n",
                 LV_SYMBOL_BACKSPACE, "0", ".", "=", ""};
 
-        lv_obj_t *btnm = lv_buttonmatrix_create(SmartWatchUI_t.calculator);
+        lv_obj_t *btnm = lv_buttonmatrix_create(EmbeddedUI_t.calculator);
         lv_obj_set_size(btnm, 350, 300);
         lv_obj_align(btnm, LV_ALIGN_BOTTOM_MID, 0, 10);
         lv_obj_set_style_text_font(btnm, &lv_font_montserrat_28, LV_PART_MAIN);
@@ -115,17 +111,17 @@ static void create_calculator_page(lv_event_t *e)
         lv_obj_remove_flag(btnm, LV_OBJ_FLAG_CLICK_FOCUSABLE); /*To keep the text area focused on button clicks*/
         lv_buttonmatrix_set_map(btnm, btnm_map);
 
-        SmartWatchUI_t.close_btn = lv_button_create(SmartWatchUI_t.calculator);
-        lv_obj_set_style_bg_color(SmartWatchUI_t.close_btn, lv_color_hex(0xfc0303), LV_PART_MAIN);
-        lv_obj_t *label_close = lv_label_create(SmartWatchUI_t.close_btn);
+        EmbeddedUI_t.close_btn = lv_button_create(EmbeddedUI_t.calculator);
+        lv_obj_set_style_bg_color(EmbeddedUI_t.close_btn, lv_color_hex(0xfc0303), LV_PART_MAIN);
+        lv_obj_t *label_close = lv_label_create(EmbeddedUI_t.close_btn);
         lv_obj_set_style_text_font(label_close, &lv_font_montserrat_28, LV_PART_MAIN);
         lv_label_set_text(label_close, LV_SYMBOL_TRASH);
 
-        lv_obj_align(SmartWatchUI_t.close_btn, LV_ALIGN_TOP_RIGHT, 0, 0);
-        lv_obj_set_size(SmartWatchUI_t.calculator, TFT_WIDTH - 20, TFT_HEIGHT - 60);
+        lv_obj_align(EmbeddedUI_t.close_btn, LV_ALIGN_TOP_RIGHT, -10, 10);
+        lv_obj_set_size(EmbeddedUI_t.calculator, TFT_WIDTH - 20, TFT_HEIGHT - 60);
 
-        lv_obj_center(SmartWatchUI_t.calculator);
-        lv_obj_add_event_cb(SmartWatchUI_t.close_btn, close_window_cb, LV_EVENT_PRESSED, NULL);
-        lv_obj_add_event_cb(SmartWatchUI_t.close_btn, close_window_cb, LV_EVENT_CLICKED, NULL);
+        lv_obj_center(EmbeddedUI_t.calculator);
+        lv_obj_add_event_cb(EmbeddedUI_t.close_btn, close_window_cb, LV_EVENT_PRESSED, NULL);
+        lv_obj_add_event_cb(EmbeddedUI_t.close_btn, close_window_cb, LV_EVENT_CLICKED, NULL);
     }
 }

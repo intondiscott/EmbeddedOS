@@ -2,14 +2,14 @@
 #include <Arduino.h>
 #include "pin_config.h"
 #include <lvgl.h>
-#include<time.h>
+#include <time.h>
 #include "Arduino_GFX_Library.h"
 #include "Arduino_DriveBus_Library.h"
 #include "../lv_conf.h"
 #include <demos/lv_demos.h>
 #include "SensorPCF85063.hpp"
 #include "HWCDC.h"
-#include <SmartWatch_Structs.h>
+#include <Embedded_Structs.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WiFi.h>
@@ -114,8 +114,13 @@ void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 
   uint32_t w = (area->x2 - area->x1 + 1);
   uint32_t h = (area->y2 - area->y1 + 1);
-  // lv_draw_sw_rgb565_swap(px_map, w * h);
-  SmartWatchUI_t.gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)px_map, w, h);
+// lv_draw_sw_rgb565_swap(px_map, w * h);
+#ifdef WAVESHARE_OLED_SMARTWATCH
+  EmbeddedUI_t.gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)px_map, w, h);
+#endif
+#ifdef M5STACK_CORE2
+  EmbeddedUI_t.gfx->drawBitmap(area->x1, area->y1, w, h, (uint16_t *)px_map);
+#endif
 
   /*Call it to tell LVGL you are ready*/
   lv_disp_flush_ready(disp);
@@ -186,7 +191,7 @@ void rounder_event_cb(lv_event_t *e)
 void screen_update()
 {
 
-  uint32_t battery_percentage = SmartWatchUI_t.power.getBatteryPercent();
+  uint32_t battery_percentage = EmbeddedUI_t.power.getBatteryPercent();
   RTC_DateTime now = rtc.getDateTime();
   time_vals->hours = now.getHour();
   time_vals->minutes = now.getMinute();
@@ -194,37 +199,37 @@ void screen_update()
   time_vals->day = now.getDay();
   time_vals->month = now.getMonth();
   time_vals->year = now.getYear();
-  snprintf(SmartWatchUI_t.bat, sizeof(SmartWatchUI_t.bat), "%d", battery_percentage);
+  snprintf(EmbeddedUI_t.bat, sizeof(EmbeddedUI_t.bat), "%d", battery_percentage);
   if (WiFi.status() == WL_CONNECTED)
   {
-    lv_label_set_text(SmartWatchUI_t.connection_status, LV_SYMBOL_WIFI);
+    lv_label_set_text(EmbeddedUI_t.connection_status, LV_SYMBOL_WIFI);
   }
   else
   {
-    lv_label_set_text(SmartWatchUI_t.connection_status, "");
+    lv_label_set_text(EmbeddedUI_t.connection_status, "");
   }
   if (setting_values->bluetooth_communications)
   {
-    lv_label_set_text(SmartWatchUI_t.bluetooth_status, LV_SYMBOL_BLUETOOTH);
+    lv_label_set_text(EmbeddedUI_t.bluetooth_status, LV_SYMBOL_BLUETOOTH);
   }
   else
   {
-    lv_label_set_text(SmartWatchUI_t.bluetooth_status, "");
+    lv_label_set_text(EmbeddedUI_t.bluetooth_status, "");
   }
   if (setting_values->radio_communications)
   {
-    lv_label_set_text(SmartWatchUI_t.lora_status, LV_SYMBOL_GPS);
+    lv_label_set_text(EmbeddedUI_t.lora_status, LV_SYMBOL_GPS);
   }
   else
   {
-    lv_label_set_text(SmartWatchUI_t.lora_status, "");
+    lv_label_set_text(EmbeddedUI_t.lora_status, "");
   }
 
-  lv_label_set_text_fmt(SmartWatchUI_t.battery_label, "%s%%", SmartWatchUI_t.bat);
+  lv_label_set_text_fmt(EmbeddedUI_t.battery_label, "%s%%", EmbeddedUI_t.bat);
 
-  if (SmartWatchUI_t.power.isCharging())
+  if (EmbeddedUI_t.power.isCharging())
   {
-    lv_label_set_text(SmartWatchUI_t.bat_img, LV_SYMBOL_CHARGE);
+    lv_label_set_text(EmbeddedUI_t.bat_img, LV_SYMBOL_CHARGE);
   }
   else
   {
@@ -232,16 +237,16 @@ void screen_update()
     switch (battery_percentage)
     {
     case 80 ... 100:
-      lv_label_set_text(SmartWatchUI_t.bat_img, LV_SYMBOL_BATTERY_FULL);
+      lv_label_set_text(EmbeddedUI_t.bat_img, LV_SYMBOL_BATTERY_FULL);
       break;
     case 40 ... 79:
-      lv_label_set_text(SmartWatchUI_t.bat_img, LV_SYMBOL_BATTERY_3);
+      lv_label_set_text(EmbeddedUI_t.bat_img, LV_SYMBOL_BATTERY_3);
       break;
     case 15 ... 39:
-      lv_label_set_text(SmartWatchUI_t.bat_img, LV_SYMBOL_BATTERY_2);
+      lv_label_set_text(EmbeddedUI_t.bat_img, LV_SYMBOL_BATTERY_2);
       break;
     case 0 ... 14:
-      lv_label_set_text(SmartWatchUI_t.bat_img, LV_SYMBOL_BATTERY_1);
+      lv_label_set_text(EmbeddedUI_t.bat_img, LV_SYMBOL_BATTERY_1);
       break;
     default:
       break;
@@ -260,8 +265,8 @@ void sensorsTask(void *pvParams)
       int httpCode2, httpCode3;
       float x, y, z;
 
-      String battery = "\"pin1\":\"" + (String)SmartWatchUI_t.bat + "\",";
-      String charging = "\"pin2\":\"" + (String)SmartWatchUI_t.power.getBatteryPercent() + "\",";
+      String battery = "\"pin1\":\"" + (String)EmbeddedUI_t.bat + "\",";
+      String charging = "\"pin2\":\"" + (String)EmbeddedUI_t.power.getBatteryPercent() + "\",";
       String chip_temp = "\"pin3\":\"84\"";
 
       http2.begin("http://192.168.0.114:8080/api/v1/devices/1");
@@ -386,133 +391,133 @@ void drawUI()
   static lv_style_t button_click;
   lv_style_init(&button_click);
   lv_style_set_image_recolor_opa(&button_click, LV_OPA_30);
-  SmartWatchUI_t.main_screen = lv_image_create(lv_screen_active());
+  EmbeddedUI_t.main_screen = lv_image_create(lv_screen_active());
 
-  SmartWatchUI_t.nav_screen = lv_obj_create(SmartWatchUI_t.main_screen);
-  SmartWatchUI_t.battery_label = lv_label_create(SmartWatchUI_t.nav_screen);
+  EmbeddedUI_t.nav_screen = lv_obj_create(EmbeddedUI_t.main_screen);
+  EmbeddedUI_t.battery_label = lv_label_create(EmbeddedUI_t.nav_screen);
 
-  SmartWatchUI_t.connection_status = lv_label_create(SmartWatchUI_t.nav_screen);
-  SmartWatchUI_t.bluetooth_status = lv_label_create(SmartWatchUI_t.nav_screen);
-  SmartWatchUI_t.lora_status = lv_label_create(SmartWatchUI_t.nav_screen);
-  SmartWatchUI_t.bat_img = lv_label_create(SmartWatchUI_t.nav_screen);
+  EmbeddedUI_t.connection_status = lv_label_create(EmbeddedUI_t.nav_screen);
+  EmbeddedUI_t.bluetooth_status = lv_label_create(EmbeddedUI_t.nav_screen);
+  EmbeddedUI_t.lora_status = lv_label_create(EmbeddedUI_t.nav_screen);
+  EmbeddedUI_t.bat_img = lv_label_create(EmbeddedUI_t.nav_screen);
 
-  lv_obj_set_style_text_color(SmartWatchUI_t.connection_status, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_set_style_text_color(SmartWatchUI_t.bluetooth_status, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_set_style_text_color(SmartWatchUI_t.lora_status, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_set_style_text_color(SmartWatchUI_t.bat_img, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  lv_obj_set_style_text_color(EmbeddedUI_t.connection_status, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  lv_obj_set_style_text_color(EmbeddedUI_t.bluetooth_status, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  lv_obj_set_style_text_color(EmbeddedUI_t.lora_status, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  lv_obj_set_style_text_color(EmbeddedUI_t.bat_img, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
 
-  lv_obj_set_style_text_font(SmartWatchUI_t.bat_img, &lv_font_montserrat_28, LV_PART_MAIN);
-  lv_obj_set_style_text_font(SmartWatchUI_t.battery_label, &lv_font_montserrat_28, LV_PART_MAIN);
-  lv_obj_set_style_text_font(SmartWatchUI_t.connection_status, &lv_font_montserrat_28, LV_PART_MAIN);
-  lv_obj_set_style_text_font(SmartWatchUI_t.bluetooth_status, &lv_font_montserrat_28, LV_PART_MAIN);
-  lv_obj_set_style_text_font(SmartWatchUI_t.lora_status, &lv_font_montserrat_28, LV_PART_MAIN);
+  lv_obj_set_style_text_font(EmbeddedUI_t.bat_img, &lv_font_montserrat_28, LV_PART_MAIN);
+  lv_obj_set_style_text_font(EmbeddedUI_t.battery_label, &lv_font_montserrat_28, LV_PART_MAIN);
+  lv_obj_set_style_text_font(EmbeddedUI_t.connection_status, &lv_font_montserrat_28, LV_PART_MAIN);
+  lv_obj_set_style_text_font(EmbeddedUI_t.bluetooth_status, &lv_font_montserrat_28, LV_PART_MAIN);
+  lv_obj_set_style_text_font(EmbeddedUI_t.lora_status, &lv_font_montserrat_28, LV_PART_MAIN);
 
-  SmartWatchUI_t.icons[0] = lv_imagebutton_create(SmartWatchUI_t.main_screen);
-  SmartWatchUI_t.icons[1] = lv_imagebutton_create(SmartWatchUI_t.main_screen);
-  SmartWatchUI_t.icons[2] = lv_imagebutton_create(SmartWatchUI_t.main_screen);
-  SmartWatchUI_t.icons[3] = lv_imagebutton_create(SmartWatchUI_t.main_screen);
-  SmartWatchUI_t.icons[4] = lv_imagebutton_create(SmartWatchUI_t.main_screen);
-  SmartWatchUI_t.icons[5] = lv_imagebutton_create(SmartWatchUI_t.main_screen);
-  SmartWatchUI_t.icons[6] = lv_imagebutton_create(SmartWatchUI_t.main_screen);
-  SmartWatchUI_t.icons[7] = lv_imagebutton_create(SmartWatchUI_t.main_screen);
+  EmbeddedUI_t.icons[0] = lv_imagebutton_create(EmbeddedUI_t.main_screen);
+  EmbeddedUI_t.icons[1] = lv_imagebutton_create(EmbeddedUI_t.main_screen);
+  EmbeddedUI_t.icons[2] = lv_imagebutton_create(EmbeddedUI_t.main_screen);
+  EmbeddedUI_t.icons[3] = lv_imagebutton_create(EmbeddedUI_t.main_screen);
+  EmbeddedUI_t.icons[4] = lv_imagebutton_create(EmbeddedUI_t.main_screen);
+  EmbeddedUI_t.icons[5] = lv_imagebutton_create(EmbeddedUI_t.main_screen);
+  EmbeddedUI_t.icons[6] = lv_imagebutton_create(EmbeddedUI_t.main_screen);
+  EmbeddedUI_t.icons[7] = lv_imagebutton_create(EmbeddedUI_t.main_screen);
 
-  lv_image_set_src(SmartWatchUI_t.main_screen, &nature_wallpaper);
+  lv_image_set_src(EmbeddedUI_t.main_screen, &nature_wallpaper);
 #ifdef USE_TDECK_OS_ICONS
-  lv_image_set_scale(SmartWatchUI_t.main_screen, 500);
+  lv_image_set_scale(EmbeddedUI_t.main_screen, 500);
 #endif
-  lv_imagebutton_set_src(SmartWatchUI_t.icons[0], LV_IMAGEBUTTON_STATE_RELEASED, &book, &book, &book);
-  lv_imagebutton_set_src(SmartWatchUI_t.icons[1], LV_IMAGEBUTTON_STATE_RELEASED, &setting, &setting, &setting);
-  lv_imagebutton_set_src(SmartWatchUI_t.icons[2], LV_IMAGEBUTTON_STATE_RELEASED, &telephone, &telephone, &telephone);
-  lv_imagebutton_set_src(SmartWatchUI_t.icons[3], LV_IMAGEBUTTON_STATE_RELEASED, &messages, &messages, &messages);
-  lv_imagebutton_set_src(SmartWatchUI_t.icons[4], LV_IMAGEBUTTON_STATE_RELEASED, &calculator, &calculator, &calculator);
-  lv_imagebutton_set_src(SmartWatchUI_t.icons[5], LV_IMAGEBUTTON_STATE_RELEASED, &calendar, &calendar, &calendar);
-  lv_imagebutton_set_src(SmartWatchUI_t.icons[6], LV_IMAGEBUTTON_STATE_RELEASED, &weather, &weather, &weather);
-  lv_imagebutton_set_src(SmartWatchUI_t.icons[7], LV_IMAGEBUTTON_STATE_RELEASED, &clock80, &clock80, &clock80);
+  lv_imagebutton_set_src(EmbeddedUI_t.icons[0], LV_IMAGEBUTTON_STATE_RELEASED, &book, &book, &book);
+  lv_imagebutton_set_src(EmbeddedUI_t.icons[1], LV_IMAGEBUTTON_STATE_RELEASED, &setting, &setting, &setting);
+  lv_imagebutton_set_src(EmbeddedUI_t.icons[2], LV_IMAGEBUTTON_STATE_RELEASED, &telephone, &telephone, &telephone);
+  lv_imagebutton_set_src(EmbeddedUI_t.icons[3], LV_IMAGEBUTTON_STATE_RELEASED, &messages, &messages, &messages);
+  lv_imagebutton_set_src(EmbeddedUI_t.icons[4], LV_IMAGEBUTTON_STATE_RELEASED, &calculator, &calculator, &calculator);
+  lv_imagebutton_set_src(EmbeddedUI_t.icons[5], LV_IMAGEBUTTON_STATE_RELEASED, &calendar, &calendar, &calendar);
+  lv_imagebutton_set_src(EmbeddedUI_t.icons[6], LV_IMAGEBUTTON_STATE_RELEASED, &weather, &weather, &weather);
+  lv_imagebutton_set_src(EmbeddedUI_t.icons[7], LV_IMAGEBUTTON_STATE_RELEASED, &clock80, &clock80, &clock80);
 
-  lv_obj_add_style(SmartWatchUI_t.icons[0], &button_click, LV_STATE_PRESSED);
-  lv_obj_add_style(SmartWatchUI_t.icons[1], &button_click, LV_STATE_PRESSED);
-  lv_obj_add_style(SmartWatchUI_t.icons[2], &button_click, LV_STATE_PRESSED);
-  lv_obj_add_style(SmartWatchUI_t.icons[3], &button_click, LV_STATE_PRESSED);
-  lv_obj_add_style(SmartWatchUI_t.icons[4], &button_click, LV_STATE_PRESSED);
-  lv_obj_add_style(SmartWatchUI_t.icons[5], &button_click, LV_STATE_PRESSED);
-  lv_obj_add_style(SmartWatchUI_t.icons[6], &button_click, LV_STATE_PRESSED);
-  lv_obj_add_style(SmartWatchUI_t.icons[7], &button_click, LV_STATE_PRESSED);
+  lv_obj_add_style(EmbeddedUI_t.icons[0], &button_click, LV_STATE_PRESSED);
+  lv_obj_add_style(EmbeddedUI_t.icons[1], &button_click, LV_STATE_PRESSED);
+  lv_obj_add_style(EmbeddedUI_t.icons[2], &button_click, LV_STATE_PRESSED);
+  lv_obj_add_style(EmbeddedUI_t.icons[3], &button_click, LV_STATE_PRESSED);
+  lv_obj_add_style(EmbeddedUI_t.icons[4], &button_click, LV_STATE_PRESSED);
+  lv_obj_add_style(EmbeddedUI_t.icons[5], &button_click, LV_STATE_PRESSED);
+  lv_obj_add_style(EmbeddedUI_t.icons[6], &button_click, LV_STATE_PRESSED);
+  lv_obj_add_style(EmbeddedUI_t.icons[7], &button_click, LV_STATE_PRESSED);
 
-  lv_obj_align(SmartWatchUI_t.bat_img, LV_ALIGN_RIGHT_MID, -80, 0);
+  lv_obj_align(EmbeddedUI_t.bat_img, LV_ALIGN_RIGHT_MID, -80, 0);
 
-  lv_obj_align(SmartWatchUI_t.connection_status, LV_ALIGN_LEFT_MID, 30, 0);
-  lv_obj_align(SmartWatchUI_t.bluetooth_status, LV_ALIGN_LEFT_MID, 70, 0);
-  lv_obj_align(SmartWatchUI_t.lora_status, LV_ALIGN_LEFT_MID, 100, 0);
-  lv_obj_set_style_radius(SmartWatchUI_t.main_screen, 40, LV_PART_MAIN);
-  //lv_obj_set_style_clip_corner(SmartWatchUI_t.main_screen, true, LV_PART_MAIN);
-  lv_obj_set_size(SmartWatchUI_t.main_screen, TFT_WIDTH - 0,
+  lv_obj_align(EmbeddedUI_t.connection_status, LV_ALIGN_LEFT_MID, 30, 0);
+  lv_obj_align(EmbeddedUI_t.bluetooth_status, LV_ALIGN_LEFT_MID, 70, 0);
+  lv_obj_align(EmbeddedUI_t.lora_status, LV_ALIGN_LEFT_MID, 100, 0);
+  lv_obj_set_style_radius(EmbeddedUI_t.main_screen, 40, LV_PART_MAIN);
+  // lv_obj_set_style_clip_corner(EmbeddedUI_t.main_screen, true, LV_PART_MAIN);
+  lv_obj_set_size(EmbeddedUI_t.main_screen, TFT_WIDTH - 0,
                   TFT_HEIGHT - 10);
 
-  lv_obj_center(SmartWatchUI_t.main_screen);
+  lv_obj_center(EmbeddedUI_t.main_screen);
 
-  lv_obj_set_style_margin_top(SmartWatchUI_t.main_screen, 30, LV_PART_MAIN);
-  lv_obj_set_flex_flow(SmartWatchUI_t.main_screen, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_size(SmartWatchUI_t.nav_screen, TFT_WIDTH - 50, 30);
-  lv_obj_align(SmartWatchUI_t.battery_label, LV_ALIGN_RIGHT_MID, 10, 0);
+  lv_obj_set_style_margin_top(EmbeddedUI_t.main_screen, 30, LV_PART_MAIN);
+  lv_obj_set_flex_flow(EmbeddedUI_t.main_screen, LV_FLEX_FLOW_ROW_WRAP);
+  lv_obj_set_size(EmbeddedUI_t.nav_screen, TFT_WIDTH - 50, 30);
+  lv_obj_align(EmbeddedUI_t.battery_label, LV_ALIGN_RIGHT_MID, 10, 0);
 
-  lv_obj_set_style_pad_all(SmartWatchUI_t.nav_screen, 10, LV_PART_MAIN);
-  lv_obj_set_style_pad_all(SmartWatchUI_t.main_screen, 0, LV_PART_MAIN);
-  lv_obj_set_style_margin_all(SmartWatchUI_t.nav_screen, 10, LV_PART_MAIN);
-  lv_obj_set_style_bg_color(SmartWatchUI_t.main_screen, lv_color_hex(0x98a3a2), LV_PART_MAIN);
+  lv_obj_set_style_pad_all(EmbeddedUI_t.nav_screen, 10, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(EmbeddedUI_t.main_screen, 0, LV_PART_MAIN);
+  lv_obj_set_style_margin_all(EmbeddedUI_t.nav_screen, 10, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(EmbeddedUI_t.main_screen, lv_color_hex(0x98a3a2), LV_PART_MAIN);
 
   static lv_style_t transparent_style;
   lv_style_init(&transparent_style);
   lv_style_set_bg_opa(&transparent_style, LV_OPA_0);
   lv_style_set_border_opa(&transparent_style, LV_OPA_0);
-  lv_obj_add_style(SmartWatchUI_t.nav_screen, &transparent_style, LV_PART_MAIN);
+  lv_obj_add_style(EmbeddedUI_t.nav_screen, &transparent_style, LV_PART_MAIN);
 
-  lv_obj_align(SmartWatchUI_t.battery_label, LV_ALIGN_RIGHT_MID, -10, 0);
-  lv_obj_set_style_text_color(SmartWatchUI_t.battery_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  // lv_label_set_text(SmartWatchUI_t.battery_label, LV_SYMBOL_BATTERY_FULL);
+  lv_obj_align(EmbeddedUI_t.battery_label, LV_ALIGN_RIGHT_MID, -10, 0);
+  lv_obj_set_style_text_color(EmbeddedUI_t.battery_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  // lv_label_set_text(EmbeddedUI_t.battery_label, LV_SYMBOL_BATTERY_FULL);
 
-  lv_obj_set_style_margin_all(SmartWatchUI_t.icons[0], 10, LV_PART_MAIN);
-  lv_obj_set_style_margin_all(SmartWatchUI_t.icons[1], 10, LV_PART_MAIN);
-  lv_obj_set_style_margin_all(SmartWatchUI_t.icons[2], 10, LV_PART_MAIN);
-  lv_obj_set_style_margin_all(SmartWatchUI_t.icons[3], 10, LV_PART_MAIN);
-  lv_obj_set_style_margin_all(SmartWatchUI_t.icons[4], 10, LV_PART_MAIN);
-  lv_obj_set_style_margin_all(SmartWatchUI_t.icons[5], 10, LV_PART_MAIN);
-  lv_obj_set_style_margin_all(SmartWatchUI_t.icons[6], 10, LV_PART_MAIN);
+  lv_obj_set_style_margin_all(EmbeddedUI_t.icons[0], 10, LV_PART_MAIN);
+  lv_obj_set_style_margin_all(EmbeddedUI_t.icons[1], 10, LV_PART_MAIN);
+  lv_obj_set_style_margin_all(EmbeddedUI_t.icons[2], 10, LV_PART_MAIN);
+  lv_obj_set_style_margin_all(EmbeddedUI_t.icons[3], 10, LV_PART_MAIN);
+  lv_obj_set_style_margin_all(EmbeddedUI_t.icons[4], 10, LV_PART_MAIN);
+  lv_obj_set_style_margin_all(EmbeddedUI_t.icons[5], 10, LV_PART_MAIN);
+  lv_obj_set_style_margin_all(EmbeddedUI_t.icons[6], 10, LV_PART_MAIN);
 
 #ifdef USE_SMARTWATCH_OS_ICONS
-  lv_obj_set_size(SmartWatchUI_t.icons[0], 80, 80);
-  lv_obj_set_size(SmartWatchUI_t.icons[1], 80, 80);
-  lv_obj_set_size(SmartWatchUI_t.icons[2], 80, 80);
-  lv_obj_set_size(SmartWatchUI_t.icons[3], 80, 80);
-  lv_obj_set_size(SmartWatchUI_t.icons[4], 80, 80);
-  lv_obj_set_size(SmartWatchUI_t.icons[5], 80, 80);
-  lv_obj_set_size(SmartWatchUI_t.icons[6], 80, 80);
-  lv_obj_set_size(SmartWatchUI_t.icons[7], 80, 80);
+  lv_obj_set_size(EmbeddedUI_t.icons[0], 80, 80);
+  lv_obj_set_size(EmbeddedUI_t.icons[1], 80, 80);
+  lv_obj_set_size(EmbeddedUI_t.icons[2], 80, 80);
+  lv_obj_set_size(EmbeddedUI_t.icons[3], 80, 80);
+  lv_obj_set_size(EmbeddedUI_t.icons[4], 80, 80);
+  lv_obj_set_size(EmbeddedUI_t.icons[5], 80, 80);
+  lv_obj_set_size(EmbeddedUI_t.icons[6], 80, 80);
+  lv_obj_set_size(EmbeddedUI_t.icons[7], 80, 80);
 #endif
 
 #ifdef USE_TDECK_OS_ICONS
-  lv_obj_set_size(SmartWatchUI_t.icons[0], 60, 60);
-  lv_obj_set_size(SmartWatchUI_t.icons[1], 60, 60);
-  lv_obj_set_size(SmartWatchUI_t.icons[2], 60, 60);
-  lv_obj_set_size(SmartWatchUI_t.icons[3], 60, 60);
-  lv_obj_set_size(SmartWatchUI_t.icons[4], 60, 60);
-  lv_obj_set_size(SmartWatchUI_t.icons[5], 60, 60);
-  lv_obj_set_size(SmartWatchUI_t.icons[6], 60, 60);
+  lv_obj_set_size(EmbeddedUI_t.icons[0], 60, 60);
+  lv_obj_set_size(EmbeddedUI_t.icons[1], 60, 60);
+  lv_obj_set_size(EmbeddedUI_t.icons[2], 60, 60);
+  lv_obj_set_size(EmbeddedUI_t.icons[3], 60, 60);
+  lv_obj_set_size(EmbeddedUI_t.icons[4], 60, 60);
+  lv_obj_set_size(EmbeddedUI_t.icons[5], 60, 60);
+  lv_obj_set_size(EmbeddedUI_t.icons[6], 60, 60);
 #endif
 
-  lv_obj_add_event_cb(SmartWatchUI_t.icons[0], create_contact_page, LV_EVENT_CLICKED, SmartWatchUI_t.main_screen);
-  lv_obj_add_event_cb(SmartWatchUI_t.icons[1], create_setting_page, LV_EVENT_CLICKED, SmartWatchUI_t.main_screen);
-  lv_obj_add_event_cb(SmartWatchUI_t.icons[2], create_phone_page, LV_EVENT_CLICKED, SmartWatchUI_t.main_screen);
-  lv_obj_add_event_cb(SmartWatchUI_t.icons[3], create_messages_page, LV_EVENT_CLICKED, SmartWatchUI_t.main_screen);
-  lv_obj_add_event_cb(SmartWatchUI_t.icons[4], create_calculator_page, LV_EVENT_CLICKED, SmartWatchUI_t.main_screen);
-  lv_obj_add_event_cb(SmartWatchUI_t.icons[5], create_calendar_page, LV_EVENT_CLICKED, SmartWatchUI_t.main_screen);
-  lv_obj_add_event_cb(SmartWatchUI_t.icons[6], create_weather_page, LV_EVENT_CLICKED, SmartWatchUI_t.main_screen);
-  lv_obj_add_event_cb(SmartWatchUI_t.icons[7], create_clock_page, LV_EVENT_CLICKED, SmartWatchUI_t.main_screen);
+  lv_obj_add_event_cb(EmbeddedUI_t.icons[0], create_contact_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+  lv_obj_add_event_cb(EmbeddedUI_t.icons[1], create_setting_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+  lv_obj_add_event_cb(EmbeddedUI_t.icons[2], create_phone_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+  lv_obj_add_event_cb(EmbeddedUI_t.icons[3], create_messages_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+  lv_obj_add_event_cb(EmbeddedUI_t.icons[4], create_calculator_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+  lv_obj_add_event_cb(EmbeddedUI_t.icons[5], create_calendar_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+  lv_obj_add_event_cb(EmbeddedUI_t.icons[6], create_weather_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+  lv_obj_add_event_cb(EmbeddedUI_t.icons[7], create_clock_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
 }
 
 void setupLVGL(void *pvParameters)
 {
-  screenWidth = SmartWatchUI_t.gfx->width();
-  screenHeight = SmartWatchUI_t.gfx->height();
+  screenWidth = EmbeddedUI_t.gfx->width();
+  screenHeight = EmbeddedUI_t.gfx->height();
   lv_init();
 
   // lv_display_t *display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
@@ -571,20 +576,20 @@ void setup()
   // delay(1000);
   // Init Display
 
-  if (!SmartWatchUI_t.gfx->begin())
+  if (!EmbeddedUI_t.gfx->begin())
   {
     USBSerial.println("gfx->begin() failed!");
   }
   pinMode(10, INPUT);
-  // SmartWatchUI_t.gfx->fillScreen(RGB565_BLACK);
-  // SmartWatchUI_t.gfx->setCursor(100, 100);
-  // SmartWatchUI_t.gfx->setTextSize(2);
-  // SmartWatchUI_t.gfx->setTextColor(0xCCCC, 0xFFFF);
-  // SmartWatchUI_t.gfx->println("Setting up stuff...");
+  // EmbeddedUI_t.gfx->fillScreen(RGB565_BLACK);
+  // EmbeddedUI_t.gfx->setCursor(100, 100);
+  // EmbeddedUI_t.gfx->setTextSize(2);
+  // EmbeddedUI_t.gfx->setTextColor(0xCCCC, 0xFFFF);
+  // EmbeddedUI_t.gfx->println("Setting up stuff...");
   Wire.begin(IIC_SDA, IIC_SCL);
-  
+
   // Initialize I2C communication (adjust SDA/SCL pins for your specific board)
-  bool isReady = SmartWatchUI_t.power.begin(Wire, AXP2101_SLAVE_ADDRESS, IIC_SDA, IIC_SCL);
+  bool isReady = EmbeddedUI_t.power.begin(Wire, AXP2101_SLAVE_ADDRESS, IIC_SDA, IIC_SCL);
   if (!isReady)
   {
     Serial.println("AXP2101 not found!");
@@ -615,39 +620,43 @@ void setup()
   uint8_t hour = 13;
   uint8_t minute = 49;
   uint8_t second = 0;
-  
+
   const uint8_t co5300_init_operations[] = {
-    BEGIN_WRITE,
-    WRITE_COMMAND_8, CO5300_C_SLPOUT, // Sleep Out
-    END_WRITE,
+      BEGIN_WRITE,
+      WRITE_COMMAND_8, CO5300_C_SLPOUT, // Sleep Out
+      END_WRITE,
 
-    DELAY, CO5300_SLPOUT_DELAY,
+      DELAY, CO5300_SLPOUT_DELAY,
 
-    BEGIN_WRITE,
-    // WRITE_C8_D8, CO5300_WC_TEARON, 0x00,
-    WRITE_C8_D8, 0xFE, 0x00,
-    WRITE_C8_D8, CO5300_W_SPIMODECTL, 0x80,
-    // WRITE_C8_D8, CO5300_W_MADCTL, CO5300_MADCTL_COLOR_ORDER, // RGB/BGR
-    WRITE_C8_D8, CO5300_W_PIXFMT, 0x55, // Interface Pixel Format 16bit/pixel
-    // WRITE_C8_D8, CO5300_W_PIXFMT, 0x66, // Interface Pixel Format 18bit/pixel
-    // WRITE_C8_D8, CO5300_W_PIXFMT, 0x77, // Interface Pixel Format 24bit/pixel
-    WRITE_C8_D8, CO5300_W_WCTRLD1, 0x20,
-    WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALHBM, 0xFF,
-    WRITE_COMMAND_8, CO5300_C_DISPON, // Display ON
-    WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALNOR, setting_values->brightness, // Brightness adjustment
+      BEGIN_WRITE,
+      // WRITE_C8_D8, CO5300_WC_TEARON, 0x00,
+      WRITE_C8_D8, 0xFE, 0x00,
+      WRITE_C8_D8, CO5300_W_SPIMODECTL, 0x80,
+      // WRITE_C8_D8, CO5300_W_MADCTL, CO5300_MADCTL_COLOR_ORDER, // RGB/BGR
+      WRITE_C8_D8, CO5300_W_PIXFMT, 0x55, // Interface Pixel Format 16bit/pixel
+      // WRITE_C8_D8, CO5300_W_PIXFMT, 0x66, // Interface Pixel Format 18bit/pixel
+      // WRITE_C8_D8, CO5300_W_PIXFMT, 0x77, // Interface Pixel Format 24bit/pixel
+      WRITE_C8_D8, CO5300_W_WCTRLD1, 0x20,
+      WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALHBM, 0xFF,
+      WRITE_COMMAND_8, CO5300_C_DISPON,                                     // Display ON
+      WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALNOR, setting_values->brightness, // Brightness adjustment
 
-    // High contrast mode (Sunlight Readability Enhancement)
-    WRITE_C8_D8, CO5300_W_WCE, 0x00, // Off
-    // WRITE_C8_D8, CO5300_W_WCE, 0x05, // On Low
-    // WRITE_C8_D8, CO5300_W_WCE, 0x06, // On Medium
-    // WRITE_C8_D8, CO5300_W_WCE, 0x07, // On High
+      // High contrast mode (Sunlight Readability Enhancement)
+      WRITE_C8_D8, CO5300_W_WCE, 0x00, // Off
+      // WRITE_C8_D8, CO5300_W_WCE, 0x05, // On Low
+      // WRITE_C8_D8, CO5300_W_WCE, 0x06, // On Medium
+      // WRITE_C8_D8, CO5300_W_WCE, 0x07, // On High
 
-    END_WRITE,
+      END_WRITE,
 
-    DELAY, 10};
-  SmartWatchUI_t.bus->batchOperation(co5300_init_operations, sizeof(co5300_init_operations));
-  SmartWatchUI_t.gfx->enableRoundMode();
-  //rtc.setDateTime(year, month, day, hour, minute, second);
+      DELAY, 10};
+#ifdef WAVESHARE_OLED_SMARTWATCH
+  EmbeddedUI_t.gfx->setRotation(2);
+  EmbeddedUI_t.bus->batchOperation(co5300_init_operations, sizeof(co5300_init_operations));
+  EmbeddedUI_t.gfx->enableRoundMode();
+#endif
+
+  // rtc.setDateTime(year, month, day, hour, minute, second);
   xTaskCreatePinnedToCore(setupLVGL, "setupLVGL", 1024 * 10, NULL, 3, &lvglTaskHandler, 0);
   xTaskCreatePinnedToCore(wifiTask, "wifiTask", 1024 * 6, NULL, 2, &wifiTaskHandler, 1);
   xTaskCreatePinnedToCore(sensorsTask, "sensorsTask", 1024 * 6, NULL, 1, &sensorTaskHandler, 1);

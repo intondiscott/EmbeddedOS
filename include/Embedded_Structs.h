@@ -3,10 +3,13 @@
 #include "pin_config.h"
 #include <lvgl.h>
 #include <XPowersLib.h>
+
+// #include <M5Core2.h>
 #pragma once
 
 struct
 {
+#ifdef WAVESHARE_OLED_SMARTWATCH
     XPowersPMU power;
     Arduino_DataBus *bus = new Arduino_ESP32QSPI(
         LCD_CS /* CS */, LCD_SCLK /* SCK */, LCD_SDIO0 /* SDIO0 */, LCD_SDIO1 /* SDIO1 */,
@@ -18,6 +21,11 @@ struct
                                           0 /* row_offset1 */,
                                           0 /* col_offset2 */,
                                           0 /* row_offset2 */);
+
+#endif
+#ifdef M5STACK_CORE2
+    M5Display *gfx;
+#endif
 
     lv_obj_t
         *main_screen,
@@ -50,7 +58,7 @@ struct
     char bat[6];
 
     lv_timer_t *datetime_timer;
-} static SmartWatchUI_t;
+} static EmbeddedUI_t;
 
 struct Weather
 {
