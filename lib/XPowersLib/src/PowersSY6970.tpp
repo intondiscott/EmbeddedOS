@@ -36,15 +36,13 @@
 #include "REG/GeneralPPMConstants.h"
 #include "REG/SY6970Constants.h"
 
-
-class PowersSY6970 :
-    public XPowersCommon<PowersSY6970>
+class PowersSY6970 : public XPowersCommon<PowersSY6970>
 {
     friend class XPowersCommon<PowersSY6970>;
 
 public:
-
-    enum BusStatus {
+    enum BusStatus
+    {
         BUS_STATE_NOINPUT,
         BUS_STATE_USB_SDP,
         BUS_STATE_USB_CDP,
@@ -53,17 +51,19 @@ public:
         BUS_STATE_ADAPTER,
         BUS_STATE_NO_STANDARD_ADAPTER,
         BUS_STATE_OTG
-    } ;
+    };
 
-    enum ChargeStatus {
+    enum ChargeStatus
+    {
         CHARGE_STATE_NO_CHARGE,
         CHARGE_STATE_PRE_CHARGE,
         CHARGE_STATE_FAST_CHARGE,
         CHARGE_STATE_DONE,
         CHARGE_STATE_UNKOWN,
-    } ;
+    };
 
-    enum NTCStatus {
+    enum NTCStatus
+    {
         BUCK_NTC_NORMAL = 0,
         BUCK_NTC_WARM = 2,
         BUCK_NTC_COOL = 3,
@@ -71,41 +71,48 @@ public:
         BUCK_NTC_HOT = 6,
     };
 
-    enum BoostNTCStatus {
+    enum BoostNTCStatus
+    {
         BOOST_NTC_NORMAL = 0,
         BOOST_NTC_COLD = 5,
         BOOST_NTC_HOT = 6,
     };
 
-    enum Timeout {
-        TIMER_OUT_40SEC,      //40 Second
-        TIMER_OUT_80SEC,      //80 Second
-        TIMER_OUT_160SEC,     //160 Second
-    } ;
+    enum Timeout
+    {
+        TIMER_OUT_40SEC,  // 40 Second
+        TIMER_OUT_80SEC,  // 80 Second
+        TIMER_OUT_160SEC, // 160 Second
+    };
 
-    enum MeasureMode {
+    enum MeasureMode
+    {
         ONE_SHORT,
         CONTINUOUS,
     };
 
-    enum BoostFreq {
+    enum BoostFreq
+    {
         BOOST_FREQ_1500KHZ,
         BOOST_FREQ_500KHZ,
     };
 
-    enum RequestRange {
+    enum RequestRange
+    {
         REQUEST_9V,
         REQUEST_12V,
     };
 
-    enum FastChargeTimer {
+    enum FastChargeTimer
+    {
         FAST_CHARGE_TIMER_5H,
         FAST_CHARGE_TIMER_8H,
         FAST_CHARGE_TIMER_12H,
         FAST_CHARGE_TIMER_20H,
     };
 
-    enum BoostCurrentLimit {
+    enum BoostCurrentLimit
+    {
         BOOST_CUR_LIMIT_500MA,
         BOOST_CUR_LIMIT_750MA,
         BOOST_CUR_LIMIT_1200MA,
@@ -114,7 +121,7 @@ public:
         BOOST_CUR_LIMIT_1875MA,
         BOOST_CUR_LIMIT_2150MA,
         BOOST_CUR_LIMIT_2450MA,
-    } ;
+    };
 
 #if defined(ARDUINO)
     PowersSY6970(TwoWire &w, int sda = SDA, int scl = SCL, uint8_t addr = SY6970_SLAVE_ADDRESS)
@@ -187,7 +194,7 @@ public:
         end();
     }
 
-    ///REG0B
+    /// REG0B
     bool isVbusIn()
     {
         return getBusStatus() != BUS_STATE_NOINPUT;
@@ -210,7 +217,7 @@ public:
 
     bool isBatteryConnect(void) __attribute__((error("Not implemented")))
     {
-        //TODO:
+        // TODO:
         return false;
     }
 
@@ -245,12 +252,13 @@ public:
     {
         clrRegisterBit(POWERS_PPM_REG_03H, 5);
         /*
-        * After turning on the OTG function, the charging function will
-        * be automatically disabled. If the user does not disable the charging
-        * function, the charging function will be automatically enabled after
-        * turning off the OTG output.
-        * */
-        if (!__user_disable_charge) {
+         * After turning on the OTG function, the charging function will
+         * be automatically disabled. If the user does not disable the charging
+         * function, the charging function will be automatically enabled after
+         * turning off the OTG output.
+         * */
+        if (!__user_disable_charge)
+        {
             setRegisterBit(POWERS_PPM_REG_03H, 4);
         }
     }
@@ -269,30 +277,35 @@ public:
 
     bool setSysPowerDownVoltage(uint16_t millivolt)
     {
-        if (millivolt % POWERS_SY6970_SYS_VOL_STEPS) {
+        if (millivolt % POWERS_SY6970_SYS_VOL_STEPS)
+        {
             log_e("Mistake ! The steps is must %u mV", POWERS_SY6970_SYS_VOL_STEPS);
             return false;
         }
-        if (millivolt < POWERS_SY6970_SYS_VOFF_VOL_MIN) {
+        if (millivolt < POWERS_SY6970_SYS_VOFF_VOL_MIN)
+        {
             log_e("Mistake ! SYS minimum output voltage is  %umV", POWERS_SY6970_SYS_VOFF_VOL_MIN);
             return false;
-        } else if (millivolt > POWERS_SY6970_SYS_VOFF_VOL_MAX) {
+        }
+        else if (millivolt > POWERS_SY6970_SYS_VOFF_VOL_MAX)
+        {
             log_e("Mistake ! SYS maximum output voltage is  %umV", POWERS_SY6970_SYS_VOFF_VOL_MAX);
             return false;
         }
         int val = readRegister(POWERS_PPM_REG_03H);
-        if (val == -1)return false;
+        if (val == -1)
+            return false;
         val &= 0xF1;
         val |= (millivolt - POWERS_SY6970_SYS_VOFF_VOL_MIN) / POWERS_SY6970_SYS_VOL_STEPS;
         val <<= 1;
-        return 0 ==  writeRegister(POWERS_PPM_REG_03H, val);
-
+        return 0 == writeRegister(POWERS_PPM_REG_03H, val);
     }
 
     uint16_t getSysPowerDownVoltage()
     {
         int val = readRegister(POWERS_PPM_REG_03H);
-        if (val == -1)return 0;
+        if (val == -1)
+            return 0;
         val &= 0x0E;
         val >>= 1;
         return (val * POWERS_SY6970_SYS_VOL_STEPS) + POWERS_SY6970_SYS_VOFF_VOL_MIN;
@@ -335,15 +348,16 @@ public:
     void disableWatchdog()
     {
         int regVal = readRegister(POWERS_PPM_REG_07H);
-        regVal  &= 0xCF;
+        regVal &= 0xCF;
         writeRegister(POWERS_PPM_REG_07H, regVal);
     }
 
     void enableWatchdog(enum Timeout val)
     {
         int regVal = readRegister(POWERS_PPM_REG_07H);
-        regVal  &= 0xCF;
-        switch (val) {
+        regVal &= 0xCF;
+        switch (val)
+        {
         case TIMER_OUT_40SEC:
             writeRegister(POWERS_PPM_REG_07H, regVal | 0x10);
             break;
@@ -357,7 +371,6 @@ public:
             break;
         }
     }
-
 
     void disableChargingSafetyTimer()
     {
@@ -377,7 +390,8 @@ public:
     void setFastChargeTimer(FastChargeTimer timer)
     {
         int val;
-        switch (timer) {
+        switch (timer)
+        {
         case FAST_CHARGE_TIMER_5H:
         case FAST_CHARGE_TIMER_8H:
         case FAST_CHARGE_TIMER_12H:
@@ -396,7 +410,7 @@ public:
 
     FastChargeTimer getFastChargeTimer()
     {
-        int  val = readRegister(POWERS_PPM_REG_07H);
+        int val = readRegister(POWERS_PPM_REG_07H);
         return static_cast<FastChargeTimer>((val & 0x0E) >> 1);
     }
 
@@ -420,14 +434,15 @@ public:
 
     BusStatus getBusStatus()
     {
-        int val =  readRegister(POWERS_PPM_REG_0BH);
+        int val = readRegister(POWERS_PPM_REG_0BH);
         return (BusStatus)((val >> 5) & 0x07);
     }
 
     const char *getBusStatusString()
     {
         BusStatus status = getBusStatus();
-        switch (status) {
+        switch (status)
+        {
         case BUS_STATE_NOINPUT:
             return "No input";
         case BUS_STATE_USB_SDP:
@@ -450,15 +465,17 @@ public:
 
     ChargeStatus chargeStatus()
     {
-        int val =  readRegister(POWERS_PPM_REG_0BH);
-        if (val == -1)return CHARGE_STATE_UNKOWN;
+        int val = readRegister(POWERS_PPM_REG_0BH);
+        if (val == -1)
+            return CHARGE_STATE_UNKOWN;
         return static_cast<ChargeStatus>((val >> 3) & 0x03);
     }
 
     const char *getChargeStatusString()
     {
         ChargeStatus status = chargeStatus();
-        switch (status) {
+        switch (status)
+        {
         case CHARGE_STATE_NO_CHARGE:
             return "Not Charging";
         case CHARGE_STATE_PRE_CHARGE:
@@ -481,9 +498,11 @@ public:
     {
         uint8_t status = getNTCStatus();
 
-        if (isOTG()) {
+        if (isOTG())
+        {
             // Boost mode
-            switch (status) {
+            switch (status)
+            {
             case BOOST_NTC_NORMAL:
                 return "Boost mode NTC normal";
             case BOOST_NTC_COLD:
@@ -493,9 +512,12 @@ public:
             default:
                 break;
             }
-        } else {
+        }
+        else
+        {
             // Buck mode
-            switch (status) {
+            switch (status)
+            {
             case BUCK_NTC_NORMAL:
                 return "Buck mode NTC normal";
             case BUCK_NTC_WARM:
@@ -520,7 +542,8 @@ public:
     bool enableMeasure(MeasureMode mode = CONTINUOUS)
     {
         int val = readRegister(POWERS_PPM_REG_02H);
-        switch (mode) {
+        switch (mode)
+        {
         case CONTINUOUS:
             val |= _BV(6);
             break;
@@ -536,7 +559,8 @@ public:
     bool disableADCMeasure()
     {
         int val = readRegister(POWERS_PPM_REG_02H);
-        if (val == -1) {
+        if (val == -1)
+        {
             return false;
         }
         val &= (~_BV(7));
@@ -546,7 +570,8 @@ public:
 
     bool setBoostFreq(BoostFreq freq)
     {
-        switch (freq) {
+        switch (freq)
+        {
         case BOOST_FREQ_500KHZ:
             return setRegisterBit(POWERS_PPM_REG_02H, 5);
         case BOOST_FREQ_1500KHZ:
@@ -589,7 +614,8 @@ public:
 
     void setHighVoltageRequestedRange(RequestRange range)
     {
-        switch (range) {
+        switch (range)
+        {
         case REQUEST_9V:
             clrRegisterBit(POWERS_PPM_REG_02H, 2);
             break;
@@ -644,14 +670,17 @@ public:
 
     bool setInputCurrentLimit(uint16_t milliampere)
     {
-        if (milliampere % POWERS_SY6970_IN_CURRENT_STEP) {
+        if (milliampere % POWERS_SY6970_IN_CURRENT_STEP)
+        {
             log_e("Mistake ! The steps is must %u mA", POWERS_SY6970_IN_CURRENT_STEP);
             return false;
         }
-        if (milliampere < POWERS_SY6970_IN_CURRENT_MIN) {
+        if (milliampere < POWERS_SY6970_IN_CURRENT_MIN)
+        {
             milliampere = POWERS_SY6970_IN_CURRENT_MIN;
         }
-        if (milliampere > POWERS_SY6970_IN_CURRENT_MAX) {
+        if (milliampere > POWERS_SY6970_IN_CURRENT_MAX)
+        {
             milliampere = POWERS_SY6970_IN_CURRENT_MAX;
         }
         int val = readRegister(POWERS_PPM_REG_00H);
@@ -659,7 +688,7 @@ public:
             return false;
         val &= 0xC0;
         milliampere = ((milliampere - POWERS_SY6970_IN_CURRENT_MIN) / POWERS_SY6970_IN_CURRENT_STEP);
-        val |=  milliampere;
+        val |= milliampere;
         return writeRegister(POWERS_PPM_REG_00H, val) != -1;
     }
 
@@ -706,7 +735,8 @@ public:
 
     uint16_t getVbusVoltage()
     {
-        if (!isVbusIn()) {
+        if (!isVbusIn())
+        {
             return 0;
         }
         int val = readRegister(POWERS_PPM_REG_11H);
@@ -717,7 +747,8 @@ public:
     {
         int val = readRegister(POWERS_PPM_REG_0EH);
         val = POWERS_SY6970_VBAT_MASK_VAL(val);
-        if (val == 0)return 0;
+        if (val == 0)
+            return 0;
         return (val * POWERS_SY6970_VBAT_VOL_STEP) + POWERS_SY6970_VBAT_BASE_VAL;
     }
 
@@ -736,34 +767,39 @@ public:
     uint16_t getChargeCurrent()
     {
         ChargeStatus status = chargeStatus();
-        if (status == CHARGE_STATE_NO_CHARGE) {
+        if (status == CHARGE_STATE_NO_CHARGE)
+        {
             return 0;
         }
         //* If the charger is disconnected, the value in the register
         //* will remain the last value and will not be updated to 0.
         int val = readRegister(POWERS_PPM_REG_12H);
-        if (val == 0)return 0;
+        if (val == 0)
+            return 0;
         val = (val & 0x7F);
-        return (val * POWERS_SY6970_CHG_STEP_VAL) ;
+        return (val * POWERS_SY6970_CHG_STEP_VAL);
     }
 
     // Range: 64mA ~ 1024 mA ,step:64mA
     bool setPrechargeCurr(uint16_t milliampere)
     {
-        if (milliampere % POWERS_SY6970_PRE_CHG_CUR_STEP) {
+        if (milliampere % POWERS_SY6970_PRE_CHG_CUR_STEP)
+        {
             log_e("Mistake ! The steps is must %u mA", POWERS_SY6970_PRE_CHG_CUR_STEP);
             return false;
         }
-        if (milliampere < POWERS_SY6970_PRE_CHG_CURRENT_MIN) {
+        if (milliampere < POWERS_SY6970_PRE_CHG_CURRENT_MIN)
+        {
             milliampere = POWERS_SY6970_PRE_CHG_CURRENT_MIN;
         }
-        if (milliampere > POWERS_SY6970_PRE_CHG_CURRENT_MAX) {
+        if (milliampere > POWERS_SY6970_PRE_CHG_CURRENT_MAX)
+        {
             milliampere = POWERS_SY6970_PRE_CHG_CURRENT_MAX;
         }
         int val = readRegister(POWERS_PPM_REG_05H);
         val &= 0x0F;
         milliampere = ((milliampere - POWERS_SY6970_PRE_CHG_CUR_BASE) / POWERS_SY6970_PRE_CHG_CUR_STEP);
-        val |=  milliampere << 4;
+        val |= milliampere << 4;
         return writeRegister(POWERS_PPM_REG_05H, val) != -1;
     }
 
@@ -790,24 +826,27 @@ public:
      */
     bool setChargerConstantCurr(uint16_t milliampere)
     {
-        if (milliampere % POWERS_SY6970_FAST_CHG_CUR_STEP) {
+        if (milliampere % POWERS_SY6970_FAST_CHG_CUR_STEP)
+        {
             log_e("Mistake ! The steps is must %u mA", POWERS_SY6970_FAST_CHG_CUR_STEP);
             return false;
         }
-        if (milliampere > POWERS_SY6970_FAST_CHG_CURRENT_MAX) {
+        if (milliampere > POWERS_SY6970_FAST_CHG_CURRENT_MAX)
+        {
             milliampere = POWERS_SY6970_FAST_CHG_CURRENT_MAX;
         }
         int val = readRegister(POWERS_PPM_REG_04H);
         val &= 0x80;
         val |= (milliampere / POWERS_SY6970_FAST_CHG_CUR_STEP);
-        return  writeRegister(POWERS_PPM_REG_04H, val) != -1;
+        return writeRegister(POWERS_PPM_REG_04H, val) != -1;
     }
 
     uint16_t getChargeTargetVoltage()
     {
         int val = readRegister(POWERS_PPM_REG_06H);
         val = (val & 0xFC) >> 2;
-        if (val > 0x30) {
+        if (val > 0x30)
+        {
             return POWERS_SY6970_FAST_CHG_VOL_MAX;
         }
         return val * POWERS_SY6970_CHG_VOL_STEP + POWERS_SY6970_CHG_VOL_BASE;
@@ -816,20 +855,23 @@ public:
     // Range:3840 ~ 4608mV ,step:16 mV
     bool setChargeTargetVoltage(uint16_t millivolt)
     {
-        if (millivolt % POWERS_SY6970_CHG_VOL_STEP) {
+        if (millivolt % POWERS_SY6970_CHG_VOL_STEP)
+        {
             log_e("Mistake ! The steps is must %u mV", POWERS_SY6970_CHG_VOL_STEP);
             return false;
         }
-        if (millivolt < POWERS_SY6970_FAST_CHG_VOL_MIN) {
+        if (millivolt < POWERS_SY6970_FAST_CHG_VOL_MIN)
+        {
             millivolt = POWERS_SY6970_FAST_CHG_VOL_MIN;
         }
-        if (millivolt > POWERS_SY6970_FAST_CHG_VOL_MAX) {
+        if (millivolt > POWERS_SY6970_FAST_CHG_VOL_MAX)
+        {
             millivolt = POWERS_SY6970_FAST_CHG_VOL_MAX;
         }
         int val = readRegister(POWERS_PPM_REG_06H);
         val &= 0x03;
         val |= (((millivolt - POWERS_SY6970_CHG_VOL_BASE) / POWERS_SY6970_CHG_VOL_STEP) << 2);
-        return  writeRegister(POWERS_PPM_REG_06H, val) != -1;
+        return writeRegister(POWERS_PPM_REG_06H, val) != -1;
     }
 
     // Turn off the battery power supply path. It can only be turned off when the
@@ -843,50 +885,55 @@ public:
     // Close battery power path
     void disableBatterPowerPath()
     {
-        setRegisterBit(POWERS_PPM_REG_09H, 5);       //Force BATFET Off : BATFET_DIS
+        setRegisterBit(POWERS_PPM_REG_09H, 5); // Force BATFET Off : BATFET_DIS
     }
 
     // Enable battery power path
     void enableBatterPowerPath()
     {
-        clrRegisterBit(POWERS_PPM_REG_09H, 5);       //Force BATFET Off : BATFET_DIS
+        clrRegisterBit(POWERS_PPM_REG_09H, 5); // Force BATFET Off : BATFET_DIS
     }
 
     // Boost Mode Voltage Regulation: 4550 mV ~ 5510 mV
     bool setBoostVoltage(uint16_t millivolt)
     {
-        if (millivolt % POWERS_SY6970_BOOTS_VOL_STEP) {
+        if (millivolt % POWERS_SY6970_BOOTS_VOL_STEP)
+        {
             log_e("Mistake ! The steps is must %u mV", POWERS_SY6970_BOOTS_VOL_STEP);
             return false;
         }
-        if (millivolt < POWERS_SY6970_BOOST_VOL_MIN) {
+        if (millivolt < POWERS_SY6970_BOOST_VOL_MIN)
+        {
             millivolt = POWERS_SY6970_BOOST_VOL_MIN;
         }
-        if (millivolt > POWERS_SY6970_BOOST_VOL_MAX) {
+        if (millivolt > POWERS_SY6970_BOOST_VOL_MAX)
+        {
             millivolt = POWERS_SY6970_BOOST_VOL_MAX;
         }
         int val = readRegister(POWERS_PPM_REG_0AH);
         val &= 0xF0;
         val |= (((millivolt - POWERS_SY6970_BOOTS_VOL_BASE) / POWERS_SY6970_BOOTS_VOL_STEP) << 4);
-        return  writeRegister(POWERS_PPM_REG_0AH, val) != -1;
+        return writeRegister(POWERS_PPM_REG_0AH, val) != -1;
     }
 
     // Boost Current Limit: 500mA ~ 2450mA
     bool setBoostCurrentLimit(BoostCurrentLimit milliampere)
     {
-        if (milliampere > BOOST_CUR_LIMIT_2450MA) {
+        if (milliampere > BOOST_CUR_LIMIT_2450MA)
+        {
             return false;
         }
         int val = readRegister(POWERS_PPM_REG_0AH);
         val &= 0x03;
         val |= milliampere;
-        return  writeRegister(POWERS_PPM_REG_0AH, val) != -1;
+        return writeRegister(POWERS_PPM_REG_0AH, val) != -1;
     }
 
     uint8_t getFaultStatus(void)
     {
         int val = readRegister(POWERS_PPM_REG_0CH);
-        if (val == -1) {
+        if (val == -1)
+        {
             return 0;
         }
         __irq_mask = val;
@@ -895,7 +942,7 @@ public:
 
     void getReadOnlyRegisterValue()
     {
-#if defined(ARDUINO) && !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR) //debug ..
+#if defined(ARDUINO) && !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR) // debug ..
         static uint8_t last_val[8] = {0};
         const uint8_t regis[] = {
             POWERS_PPM_REG_0BH,
@@ -905,29 +952,32 @@ public:
             // POWERS_PPM_REG_10H, //NTC PERCENTAGE
             // POWERS_PPM_REG_11H, //VBUS VOLTAGE
             POWERS_PPM_REG_12H,
-            POWERS_PPM_REG_13H
-        };
-        Serial.println();
-        Serial.println("-------------------------");
-        for (uint32_t i = 0; i < sizeof(regis) / sizeof(regis[0]); ++i) {
+            POWERS_PPM_REG_13H};
+        Serial0.println();
+        Serial0.println("-------------------------");
+        for (uint32_t i = 0; i < sizeof(regis) / sizeof(regis[0]); ++i)
+        {
             int val = readRegister(regis[i]);
-            if (val == -1) {
+            if (val == -1)
+            {
                 continue;
             }
-            if (last_val[i] != val) {
-                Serial.printf("\t---> REG%02X Prev:0x%02X ", regis[i], last_val[i]);
-                Serial.print(" BIN:"); Serial.print(last_val[i], BIN);
-                Serial.printf(" Curr: 0x%02X", val);
-                Serial.print(" BIN:"); Serial.println(val, BIN);
+            if (last_val[i] != val)
+            {
+                Serial0.printf("\t---> REG%02X Prev:0x%02X ", regis[i], last_val[i]);
+                Serial0.print(" BIN:");
+                Serial0.print(last_val[i], BIN);
+                Serial0.printf(" Curr: 0x%02X", val);
+                Serial0.print(" BIN:");
+                Serial0.println(val, BIN);
                 last_val[i] = val;
             }
-            Serial.printf("\tREG%02XH:0x%X BIN:0b", regis[i], val);
-            Serial.println(val, BIN);
+            Serial0.printf("\tREG%02XH:0x%X BIN:0b", regis[i], val);
+            Serial0.println(val, BIN);
         }
-        Serial.println("-------------------------");
+        Serial0.println("-------------------------");
 #endif
     }
-
 
     bool isWatchdogFault()
     {
@@ -956,35 +1006,39 @@ public:
 
     bool setVinDpmThreshold(uint16_t millivolt)
     {
-        if (millivolt % POWERS_SY6970_VINDPM_VOL_STEPS) {
+        if (millivolt % POWERS_SY6970_VINDPM_VOL_STEPS)
+        {
             log_e("Mistake ! The steps is must %u mV", POWERS_SY6970_VINDPM_VOL_STEPS);
             return false;
         }
-        if (millivolt < POWERS_SY6970_VINDPM_VOL_MIN) {
+        if (millivolt < POWERS_SY6970_VINDPM_VOL_MIN)
+        {
             millivolt = POWERS_SY6970_VINDPM_VOL_MIN;
         }
-        if (millivolt > POWERS_SY6970_VINDPM_VOL_MAX) {
+        if (millivolt > POWERS_SY6970_VINDPM_VOL_MAX)
+        {
             millivolt = POWERS_SY6970_VINDPM_VOL_MAX;
         }
         int val = readRegister(POWERS_PPM_REG_0DH);
         val &= 0x80;
         val |= (((millivolt - POWERS_SY6970_VINDPM_VOL_BASE) / POWERS_SY6970_VINDPM_VOL_STEPS));
-        return  writeRegister(POWERS_PPM_REG_0DH, val) != -1;
+        return writeRegister(POWERS_PPM_REG_0DH, val) != -1;
     }
-private:
 
+private:
     bool initImpl()
     {
         __user_disable_charge = false;
 
         uint8_t rev = getChipID();
-        if (rev != SY6970_DEV_REV) {
+        if (rev != SY6970_DEV_REV)
+        {
             return false;
         }
         // Set the minimum operating voltage. Below this voltage, the PMU will protect
         // setSysPowerDownVoltage(3300);
 
-        //Default disable Watchdog
+        // Default disable Watchdog
         disableWatchdog();
 
         return true;

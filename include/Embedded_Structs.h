@@ -4,13 +4,12 @@
 #include <lvgl.h>
 #include <XPowersLib.h>
 
-// #include <M5Core2.h>
 #pragma once
 
 struct
 {
+
 #ifdef WAVESHARE_OLED_SMARTWATCH
-    XPowersPMU power;
     Arduino_DataBus *bus = new Arduino_ESP32QSPI(
         LCD_CS /* CS */, LCD_SCLK /* SCK */, LCD_SDIO0 /* SDIO0 */, LCD_SDIO1 /* SDIO1 */,
         LCD_SDIO2 /* SDIO2 */, LCD_SDIO3 /* SDIO3 */);
@@ -21,10 +20,12 @@ struct
                                           0 /* row_offset1 */,
                                           0 /* col_offset2 */,
                                           0 /* row_offset2 */);
-
+    XPowersAXP2101 power;
 #endif
 #ifdef M5STACK_CORE2
-    M5Display *gfx;
+    Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(LCD_DC /* DC */, LCD_CS /* CS */, LCD_SCLK /* SCK */, LCD_MOSI /* MOSI */, LCD_MISO /* MISO */);
+    Arduino_GFX *gfx = new Arduino_ILI9342(bus, LCD_RESET);
+    XPowersAXP192 power;
 #endif
 
     lv_obj_t

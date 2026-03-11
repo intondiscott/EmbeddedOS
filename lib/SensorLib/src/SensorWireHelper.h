@@ -38,8 +38,8 @@ class SensorWireHelper
 public:
     // regdump,dumpDevices method does not call Wire.begin, you need to call it before using regdump or dumpDevices
     static int regdump(TwoWire &w, Stream &serial, uint8_t devAddr, uint8_t start, uint8_t len);
-    static void dumpDevices(TwoWire &w, Stream &serial = Serial, int first = 0, int last = 127);
-    static void hexdump(uint8_t *data, size_t len, Stream &serial = Serial);
+    static void dumpDevices(TwoWire &w, Stream &serial = Serial0, int first = 0, int last = 127);
+    static void hexdump(uint8_t *data, size_t len, Stream &serial = Serial0);
 };
 
 #endif /*ARDUINO*/

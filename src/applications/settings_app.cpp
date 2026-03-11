@@ -203,7 +203,7 @@ static void switch_control_cb(lv_event_t *e)
         if (setting_values->radio_communications)
         {
             // Initialize the radio module
-            Serial.print(F("[SX1262] Initializing ... "));
+            Serial0.print(F("[SX1262] Initializing ... "));
             // int state = radio.begin();
             //  if (state == RADIOLIB_ERR_NONE)
             //  {
@@ -218,7 +218,7 @@ static void switch_control_cb(lv_event_t *e)
         else
         {
             // Deinitialize the radio module
-            Serial.println(F("[SX1262] Deinitializing ... "));
+            Serial0.println(F("[SX1262] Deinitializing ... "));
             // radio.sleep();
         }
     }

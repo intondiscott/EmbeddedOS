@@ -1,0 +1,46 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <Embedded_Structs.h>
+
+void setup()
+{
+    // EmbeddedUI_t.power.init();
+    // EmbeddedUI_t.power.enableDC1();
+    Serial0.begin(115200);
+    Wire.begin(21, 22);
+    bool isReady = EmbeddedUI_t.power.begin(Wire, 0x34, 21, 22);
+    if (isReady)
+    {
+        Serial0.println("Power management chip initialized successfully!");
+    }
+    else
+    {
+        Serial0.println("Failed to initialize power management chip!");
+    }
+    Serial0.println("Hello, EmbeddedOS!");
+    //EmbeddedUI_t.power.setDC2Voltage(3300); // Set DC1 voltage to 3.3V
+    //EmbeddedUI_t.power.enableDC2(); // Enable DC1 output
+    //EmbeddedUI_t.power.setDC1Voltage(3300); // Set DC1 voltage to 3.3V
+    //EmbeddedUI_t.power.enableDC1(); // Enable DC1 output
+    EmbeddedUI_t.power.setDC3Voltage(3300); // Set DC3 voltage to 3.3V
+    EmbeddedUI_t.power.enableDC3(); // Enable DC3 output
+    //EmbeddedUI_t.power.setLDO3Voltage(3300); // Set LDO3 voltage to 3.3V
+    //EmbeddedUI_t.power.enableLDO3(); // Enable LDO3 output
+    if (!EmbeddedUI_t.gfx->begin())
+    {
+        Serial0.println("Failed to initialize display!");
+        return;
+    }
+    Serial0.println("Display initialized successfully!");
+    EmbeddedUI_t.gfx->setRotation(2);
+    EmbeddedUI_t.gfx->invertDisplay(false);
+    
+    EmbeddedUI_t.gfx->fillScreen(RGB565_BLACK);
+    EmbeddedUI_t.gfx->setCursor(0, 100);
+    EmbeddedUI_t.gfx->setTextSize(2);
+    EmbeddedUI_t.gfx->setTextColor(0x00a200, 0x00);
+    EmbeddedUI_t.gfx->println("Setting up stuff...");
+}
+void loop()
+{
+}

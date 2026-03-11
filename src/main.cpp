@@ -70,7 +70,9 @@ unsigned long lastTickMillis = 0;
 #include <applications/settings_app.cpp>
 #include <applications/clock_app.cpp>
 
-HWCDC USBSerial;
+#ifdef WAVESHARE_OLED_SMARTWATCH
+HWCDC USBSerial0;
+#endif
 #define TFT_WIDTH 410
 #define TFT_HEIGHT 512
 
@@ -89,7 +91,7 @@ uint32_t lastMillis;
 Weather *weather_vals = new Weather;
 OSTime *time_vals = new OSTime;
 Settings *setting_values = new Settings;
-
+#ifdef WAVESHARE_OLED_SMARTWATCH
 std::shared_ptr<Arduino_IIC_DriveBus> IIC_Bus =
     std::make_shared<Arduino_HWIIC>(IIC_SDA, IIC_SCL, &Wire);
 
@@ -102,7 +104,7 @@ void Arduino_IIC_Touch_Interrupt(void)
 {
   FT3168->IIC_Interrupt_Flag = true;
 }
-
+#endif
 uint32_t millis_cb(void)
 {
   return millis();
@@ -114,13 +116,9 @@ void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 
   uint32_t w = (area->x2 - area->x1 + 1);
   uint32_t h = (area->y2 - area->y1 + 1);
-// lv_draw_sw_rgb565_swap(px_map, w * h);
-#ifdef WAVESHARE_OLED_SMARTWATCH
+  // lv_draw_sw_rgb565_swap(px_map, w * h);
+
   EmbeddedUI_t.gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)px_map, w, h);
-#endif
-#ifdef M5STACK_CORE2
-  EmbeddedUI_t.gfx->drawBitmap(area->x1, area->y1, w, h, (uint16_t *)px_map);
-#endif
 
   /*Call it to tell LVGL you are ready*/
   lv_disp_flush_ready(disp);
@@ -140,13 +138,14 @@ static void my_button_read(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
   if (data->state == LV_INDEV_STATE_PRESSED)
   {
-    Serial.println("Button Pressed");
+    Serial0.println("Button Pressed");
   }
 }
 
 /*Read the touchpad*/
 void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
+#ifdef WAVESHARE_OLED_SMARTWATCH
   int32_t touchX = FT3168->IIC_Read_Device_Value(FT3168->Arduino_IIC_Touch::Value_Information::TOUCH_COORDINATE_X);
   int32_t touchY = FT3168->IIC_Read_Device_Value(FT3168->Arduino_IIC_Touch::Value_Information::TOUCH_COORDINATE_Y);
 
@@ -159,16 +158,17 @@ void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
     data->point.x = touchX;
     data->point.y = touchY;
 
-    USBSerial.print("Data x ");
-    USBSerial.print(touchX);
+    USBSerial0.print("Data x ");
+    USBSerial0.print(touchX);
 
-    USBSerial.print("Data y ");
-    USBSerial.println(touchY);
+    USBSerial0.print("Data y ");
+    USBSerial0.println(touchY);
   }
   else
   {
     data->state = LV_INDEV_STATE_REL;
   }
+#endif
 }
 
 void rounder_event_cb(lv_event_t *e)
@@ -297,13 +297,13 @@ void sensorsTask(void *pvParams)
       {
         WiFi.mode(WIFI_STA);
         WiFi.begin(MY_SECRET_SSID, MY_SECRET_PASSWORD);
-        Serial.print("Connecting to WiFi ..");
+        Serial0.print("Connecting to WiFi ..");
         while (WiFi.status() != WL_CONNECTED)
         {
-          Serial.print('.');
+          Serial0.print('.');
           delay(1000);
         }
-        Serial.println(WiFi.localIP());
+        Serial0.println(WiFi.localIP());
       }
     }
     vTaskDelay(2);
@@ -351,23 +351,23 @@ void wifiTask(void *pvParams)
         weather_vals->humidity = doc["main"]["humidity"];
         weather_vals->wind_speed = doc["wind"]["speed"];
 
-        Serial.println(payload);
+        Serial0.println(payload);
       }
       else
       {
-        Serial.println(httpCode);
+        Serial0.println(httpCode);
 
         if (setting_values->wifi_communications)
         {
           WiFi.mode(WIFI_STA);
           WiFi.begin(MY_SECRET_SSID, MY_SECRET_PASSWORD);
-          Serial.print("Connecting to WiFi ..");
+          Serial0.print("Connecting to WiFi ..");
           while (WiFi.status() != WL_CONNECTED)
           {
-            Serial.print('.');
+            Serial0.print('.');
             delay(1000);
           }
-          Serial.println(WiFi.localIP());
+          Serial0.println(WiFi.localIP());
         }
         http1.end();
       }
@@ -450,14 +450,14 @@ void drawUI()
   lv_obj_align(EmbeddedUI_t.lora_status, LV_ALIGN_LEFT_MID, 100, 0);
   lv_obj_set_style_radius(EmbeddedUI_t.main_screen, 40, LV_PART_MAIN);
   // lv_obj_set_style_clip_corner(EmbeddedUI_t.main_screen, true, LV_PART_MAIN);
-  lv_obj_set_size(EmbeddedUI_t.main_screen, TFT_WIDTH - 0,
-                  TFT_HEIGHT - 10);
+  lv_obj_set_size(EmbeddedUI_t.main_screen, screenWidth - 0,
+                  screenHeight - 10);
 
   lv_obj_center(EmbeddedUI_t.main_screen);
 
   lv_obj_set_style_margin_top(EmbeddedUI_t.main_screen, 30, LV_PART_MAIN);
   lv_obj_set_flex_flow(EmbeddedUI_t.main_screen, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_size(EmbeddedUI_t.nav_screen, TFT_WIDTH - 50, 30);
+  lv_obj_set_size(EmbeddedUI_t.nav_screen, screenWidth - 50, 30);
   lv_obj_align(EmbeddedUI_t.battery_label, LV_ALIGN_RIGHT_MID, 10, 0);
 
   lv_obj_set_style_pad_all(EmbeddedUI_t.nav_screen, 10, LV_PART_MAIN);
@@ -473,7 +473,7 @@ void drawUI()
 
   lv_obj_align(EmbeddedUI_t.battery_label, LV_ALIGN_RIGHT_MID, -10, 0);
   lv_obj_set_style_text_color(EmbeddedUI_t.battery_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  // lv_label_set_text(EmbeddedUI_t.battery_label, LV_SYMBOL_BATTERY_FULL);
+  lv_label_set_text(EmbeddedUI_t.battery_label, LV_SYMBOL_BATTERY_FULL);
 
   lv_obj_set_style_margin_all(EmbeddedUI_t.icons[0], 10, LV_PART_MAIN);
   lv_obj_set_style_margin_all(EmbeddedUI_t.icons[1], 10, LV_PART_MAIN);
@@ -504,15 +504,15 @@ void drawUI()
   lv_obj_set_size(EmbeddedUI_t.icons[6], 60, 60);
 #endif
 
-  lv_obj_add_event_cb(EmbeddedUI_t.icons[0], create_contact_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
-  lv_obj_add_event_cb(EmbeddedUI_t.icons[1], create_setting_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
-  lv_obj_add_event_cb(EmbeddedUI_t.icons[2], create_phone_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
-  lv_obj_add_event_cb(EmbeddedUI_t.icons[3], create_messages_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
-  lv_obj_add_event_cb(EmbeddedUI_t.icons[4], create_calculator_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
-  lv_obj_add_event_cb(EmbeddedUI_t.icons[5], create_calendar_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
-  lv_obj_add_event_cb(EmbeddedUI_t.icons[6], create_weather_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
-  lv_obj_add_event_cb(EmbeddedUI_t.icons[7], create_clock_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
-}
+//   lv_obj_add_event_cb(EmbeddedUI_t.icons[0], create_contact_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+//   lv_obj_add_event_cb(EmbeddedUI_t.icons[1], create_setting_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+//   lv_obj_add_event_cb(EmbeddedUI_t.icons[2], create_phone_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+//   lv_obj_add_event_cb(EmbeddedUI_t.icons[3], create_messages_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+//   lv_obj_add_event_cb(EmbeddedUI_t.icons[4], create_calculator_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+//   lv_obj_add_event_cb(EmbeddedUI_t.icons[5], create_calendar_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+//   lv_obj_add_event_cb(EmbeddedUI_t.icons[6], create_weather_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+//   lv_obj_add_event_cb(EmbeddedUI_t.icons[7], create_clock_page, LV_EVENT_CLICKED, EmbeddedUI_t.main_screen);
+ }
 
 void setupLVGL(void *pvParameters)
 {
@@ -543,23 +543,23 @@ void setupLVGL(void *pvParameters)
   lv_display_set_flush_cb(disp, my_disp_flush);
 
   lv_display_set_buffers(disp, disp_draw_buf, NULL, bufSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
-  lv_indev_t *indev = lv_indev_create();
+ // lv_indev_t *indev = lv_indev_create();
   // lv_indev_t *button_indev = lv_indev_create();          /*Create an input device*/
-  lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touch pad is a pointer-like device*/
+  //lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touch pad is a pointer-like device*/
   // lv_indev_set_type(button_indev, LV_INDEV_TYPE_BUTTON); /*Create a button input device*/
-  lv_indev_set_read_cb(indev, my_touchpad_read);
+ // lv_indev_set_read_cb(indev, my_touchpad_read);
   // lv_indev_set_read_cb(button_indev, my_button_read);
   lv_display_add_event_cb(disp, rounder_event_cb, LV_EVENT_INVALIDATE_AREA, NULL);
 
-  lv_indev_t *button_indev = lv_indev_create();          /*Create an input device*/
-  lv_indev_set_type(button_indev, LV_INDEV_TYPE_BUTTON); /*Create a button input device*/
-  lv_indev_set_read_cb(button_indev, my_button_read);
+  //lv_indev_t *button_indev = lv_indev_create();          /*Create an input device*/
+ // lv_indev_set_type(button_indev, LV_INDEV_TYPE_BUTTON); /*Create a button input device*/
+ // lv_indev_set_read_cb(button_indev, my_button_read);
 
   drawUI();
   while (1)
   {
-    screen_update();
-    // USBSerial.println("Button: "+String(analogRead(10)));
+    //screen_update();
+    // USBSerial0.println("Button: "+String(analogRead(10)));
     u_int8_t tickPeriod = millis() - lastTickMillis;
     lv_tick_inc(tickPeriod);
     lastTickMillis = millis();
@@ -570,50 +570,69 @@ void setupLVGL(void *pvParameters)
 
 void setup()
 {
-
-  USBSerial.begin(115200);
+  #ifdef WAVESHARE_OLED_SMARTWATCH
+  USBSerial0.begin(115200);
+  #endif
+  #ifdef M5STACK_CORE2
+  Serial0.begin(115200);
+  #endif
 
   // delay(1000);
   // Init Display
 
   if (!EmbeddedUI_t.gfx->begin())
   {
-    USBSerial.println("gfx->begin() failed!");
+    #ifdef WAVESHARE_OLED_SMARTWATCH
+    USBSerial0.println("gfx->begin() failed!");
+    #endif
+    #ifdef M5STACK_CORE2
+    Serial0.println("gfx->begin() failed!");
+    #endif
   }
-  pinMode(10, INPUT);
-  // EmbeddedUI_t.gfx->fillScreen(RGB565_BLACK);
-  // EmbeddedUI_t.gfx->setCursor(100, 100);
-  // EmbeddedUI_t.gfx->setTextSize(2);
-  // EmbeddedUI_t.gfx->setTextColor(0xCCCC, 0xFFFF);
-  // EmbeddedUI_t.gfx->println("Setting up stuff...");
+  //pinMode(10, INPUT);
+  EmbeddedUI_t.gfx->invertDisplay(true);
+  EmbeddedUI_t.gfx->setRotation(2);
+  EmbeddedUI_t.gfx->fillScreen(RGB565_BLACK);
+  EmbeddedUI_t.gfx->setCursor(0, 100);
+  EmbeddedUI_t.gfx->setTextSize(2);
+  EmbeddedUI_t.gfx->setTextColor(RGB565_GREEN, 0x00);
+  EmbeddedUI_t.gfx->println("Setting up stuff...");
+
   Wire.begin(IIC_SDA, IIC_SCL);
 
   // Initialize I2C communication (adjust SDA/SCL pins for your specific board)
   bool isReady = EmbeddedUI_t.power.begin(Wire, AXP2101_SLAVE_ADDRESS, IIC_SDA, IIC_SCL);
   if (!isReady)
   {
-    Serial.println("AXP2101 not found!");
+    Serial0.println("AXP2101 not found!");
     while (1)
       ;
   }
+  #ifdef WAVESHARE_OLED_SMARTWATCH
   while (FT3168->begin() == false)
   {
-    USBSerial.println("FT3168 initialization fail");
+    USBSerial0.println("FT3168 initialization fail");
     delay(2000);
   }
-  USBSerial.println("FT3168 initialization successfully");
+  USBSerial0.println("FT3168 initialization successfully");
 
   FT3168->IIC_Write_Device_State(FT3168->Arduino_IIC_Touch::Device::TOUCH_POWER_MODE,
                                  FT3168->Arduino_IIC_Touch::Device_Mode::TOUCH_POWER_MONITOR);
+                                 
   if (!rtc.begin(Wire, IIC_SDA, IIC_SCL))
   {
-    USBSerial.println("Failed to find PCF8563 - check your wiring!");
+    #ifdef WAVESHARE_OLED_SMARTWATCH
+    USBSerial0.println("Failed to find PCF8563 - check your wiring!");
+    #endif
+    #ifdef M5STACK_CORE2
+    Serial0.println("Failed to find PCF8563 - check your wiring!");
+    #endif
     while (1)
     {
       delay(1000);
     }
   }
-
+#endif
   uint16_t year = 2026;
   uint8_t month = 1;
   uint8_t day = 27;
@@ -658,8 +677,8 @@ void setup()
 
   // rtc.setDateTime(year, month, day, hour, minute, second);
   xTaskCreatePinnedToCore(setupLVGL, "setupLVGL", 1024 * 10, NULL, 3, &lvglTaskHandler, 0);
-  xTaskCreatePinnedToCore(wifiTask, "wifiTask", 1024 * 6, NULL, 2, &wifiTaskHandler, 1);
-  xTaskCreatePinnedToCore(sensorsTask, "sensorsTask", 1024 * 6, NULL, 1, &sensorTaskHandler, 1);
+  //xTaskCreatePinnedToCore(wifiTask, "wifiTask", 1024 * 6, NULL, 2, &wifiTaskHandler, 1);
+  //xTaskCreatePinnedToCore(sensorsTask, "sensorsTask", 1024 * 6, NULL, 1, &sensorTaskHandler, 1);
 }
 
 void loop()

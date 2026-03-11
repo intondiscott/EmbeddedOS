@@ -9,7 +9,7 @@ static void close_window_cb(lv_event_t *e)
 
     if (EmbeddedUI_t.datetime_timer != nullptr)
     {
-        Serial.println("Timer is valid, deleting...");
+        Serial0.println("Timer is valid, deleting...");
         lv_timer_delete(EmbeddedUI_t.datetime_timer);
         EmbeddedUI_t.datetime_timer = nullptr;
     }
