@@ -4,6 +4,10 @@
 - M5Stack Core 2
 - WaveShare OLED 2.06 Smartwatch
 
+  :exclamation: 
+  There may be broken parts at the moment due to testing. Please let me know of issues, and I will fix them accordingly.
+  
+
 
 # Waveshare 2.06 OLED Smartwatch
 
